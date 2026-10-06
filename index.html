@@ -145,6 +145,33 @@
       margin-bottom: 6px;
     }
     .home:active { background: #eee; }
+    .top-btns { display: flex; gap: 6px; }
+    #addToWallet.in { background: #333; color: #fff; }
+
+    /* 아래에서 올라오는 선택창 */
+    .sheet-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.35); z-index: 10;
+      align-items: flex-end;
+    }
+    .sheet-bg.open { display: flex; }
+    .sheet {
+      width: 100%; background: #fff;
+      border-top: 2px solid #333;
+      padding: 16px 16px 28px;
+    }
+    .sheet-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+    .sheet-row {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; background: #fff; border: 1px solid #333;
+      padding: 12px 14px; margin-bottom: 8px;
+      font-family: inherit; font-size: 15px; color: #222; cursor: pointer; text-align: left;
+    }
+    .sheet-row:active { background: #eee; }
+    .sheet-row:disabled { opacity: .4; cursor: default; }
+    .sheet-row.current { background: #333; color: #fff; }
+    .sheet-row small { font-size: 12px; color: inherit; opacity: .7; }
+    .sheet-cancel { width: 100%; margin-top: 4px; }
 
     /* 시작 메뉴 */
     .menu {
@@ -331,7 +358,10 @@
   <div class="top">
     <div class="top-row">
       <div class="major" id="major"></div>
-      <button class="home" id="home">목록</button>
+      <div class="top-btns">
+        <button class="home" id="addToWallet">👛 지갑에 넣기</button>
+        <button class="home" id="home">목록</button>
+      </div>
     </div>
     <div class="minor"><span id="minor"></span><span class="minor-en" id="minorEn"></span></div>
   </div>
@@ -356,6 +386,15 @@
   </div>
   </div>
 
+  <!-- 지갑에 넣기 선택창 -->
+  <div class="sheet-bg" id="sheetBg">
+    <div class="sheet" id="sheet">
+      <div class="sheet-title" id="sheetTitle">어느 칸에 넣을까요?</div>
+      <div id="sheetList"></div>
+      <button class="btn sheet-cancel" id="sheetCancel">닫기</button>
+    </div>
+  </div>
+
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
           integrity="sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka"
           crossorigin="anonymous"></script>
@@ -373,6 +412,7 @@
 
     const $ = id => document.getElementById(id);
     const words = v => v.text.split(/\s+/);
+    SETS.forEach((set, si) => set.verses.forEach((v, vi) => { v.id = si + ":" + vi; }));
 
     // ---------- 화면 전환 ----------
     const SCREENS = ["menu", "wallet", "picker", "app"];
@@ -422,6 +462,10 @@
         span.textContent = w;
         box.appendChild(span);
       });
+
+      const where = slotOf(v.id);
+      $("addToWallet").textContent = where >= 0 ? "👛 " + wallet.slots[where].name : "👛 지갑에 넣기";
+      $("addToWallet").classList.toggle("in", where >= 0);
 
       $("hint").classList.toggle("hidden", shown > 0);
       $("prev").disabled = index === 0;
@@ -622,6 +666,34 @@
         });
       }
     }
+
+    // ---------- 카드 화면에서 지갑에 넣기 ----------
+    function openSheet() {
+      const v = deck.verses[index];
+      const where = slotOf(v.id);
+      $("sheetTitle").textContent = v.ref + " · " + (where >= 0 ? "지금은 「" + wallet.slots[where].name + "」에 있어요" : "어느 칸에 넣을까요?");
+      const list = $("sheetList");
+      list.innerHTML = "";
+      wallet.slots.forEach((sl, k) => {
+        const b = document.createElement("button");
+        b.className = "sheet-row" + (k === where ? " current" : "");
+        const full = sl.ids.length >= sl.cap && k !== where;
+        b.innerHTML = '<span>' + sl.name + (k === where ? ' ✓' : '') + '</span><small>' + sl.ids.length + ' / ' + sl.cap + (full ? ' · 가득 참' : '') + '</small>';
+        b.disabled = full;
+        b.addEventListener("click", () => {
+          if (k === where) removeFromWallet(v.id), saveWallet();
+          else addToSlot(k, v.id);
+          closeSheet();
+          render();
+        });
+        list.appendChild(b);
+      });
+      $("sheetBg").classList.add("open");
+    }
+    function closeSheet() { $("sheetBg").classList.remove("open"); }
+    $("addToWallet").addEventListener("click", openSheet);
+    $("sheetCancel").addEventListener("click", closeSheet);
+    $("sheetBg").addEventListener("click", e => { if (e.target === $("sheetBg")) closeSheet(); });
 
     $("openWallet").addEventListener("click", openWallet);
     $("walletBack").addEventListener("click", showMenu);
