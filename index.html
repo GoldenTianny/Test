@@ -78,7 +78,6 @@
       transition: opacity .25s ease, transform .25s ease;
     }
     .word.show { opacity: 1; transform: none; }
-    .word.blank { opacity: 1; transform: none; color: #ddd; letter-spacing: -1px; }
 
     .hint {
       text-align: center;
@@ -206,15 +205,10 @@
 
       const box = $("lines");
       box.innerHTML = "";
-      words(v).forEach((w, i) => {
+      words(v).slice(0, shown).forEach(w => {
         const span = document.createElement("span");
-        if (i < shown) {
-          span.className = "word show";
-          span.textContent = w;
-        } else {
-          span.className = "word blank";
-          span.textContent = "_".repeat(Math.max(2, w.length));
-        }
+        span.className = "word show";
+        span.textContent = w;
         box.appendChild(span);
       });
 
