@@ -150,12 +150,13 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 32px 24px;
+      padding: 24px 20px 40px;
       overflow-y: auto;
     }
     .menu-group { margin-top: 10px; }
-    .menu-title { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-align: center; }
-    .menu-sub { font-size: 13px; color: #777; text-align: center; margin: 6px 0 28px; }
+    .menu-head { display: flex; justify-content: space-between; align-items: flex-start; }
+    .menu-title { font-size: 22px; font-weight: 700; letter-spacing: 2px; }
+    .menu-sub { font-size: 13px; color: #777; margin: 6px 0 16px; }
     .menu-list { display: flex; flex-direction: column; gap: 8px; }
     .menu-item {
       display: flex;
@@ -176,33 +177,32 @@
     .menu-minor small { font-size: 12px; color: #666; font-weight: 400; }
     .menu-count { font-size: 12px; color: #777; white-space: nowrap; }
     .kakao {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      margin: 28px auto 0;
-      padding: 12px 22px;
+      display: flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px;
+      flex-shrink: 0;
       background: #FEE500;
-      color: #191919;
       border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 700;
-      font-family: inherit;
+      border-radius: 50%;
       cursor: pointer;
     }
     .kakao:active { background: #f2d900; }
-    .share-msg { text-align: center; font-size: 12px; color: #777; margin-top: 10px; min-height: 16px; }
+    .share-msg { text-align: right; font-size: 12px; color: #777; min-height: 16px; margin-bottom: 4px; }
   </style>
 </head>
 <body>
 
   <div class="menu" id="menu">
-    <div class="menu-title">SCRIPTURE MEMORY</div>
-    <div class="menu-sub">암송할 묶음을 고르세요</div>
-    <div class="menu-list" id="menuList"></div>
-    <button class="kakao" id="kakaoShare">
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#191919" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7l-1 3.7c-.1.3.3.6.6.4l4.3-2.9c.5.1.9.1 1.4.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
-      카카오톡으로 공유
-    </button>
+    <div class="menu-head">
+      <div>
+        <div class="menu-title">SCRIPTURE MEMORY</div>
+        <div class="menu-sub">암송할 묶음을 고르세요</div>
+      </div>
+      <button class="kakao" id="kakaoShare" aria-label="카카오톡으로 공유">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#191919" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7l-1 3.7c-.1.3.3.6.6.4l4.3-2.9c.5.1.9.1 1.4.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
+      </button>
+    </div>
     <div class="share-msg" id="shareMsg"></div>
+    <div class="menu-list" id="menuList"></div>
   </div>
 
   <div class="app" id="app">
