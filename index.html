@@ -563,7 +563,7 @@
       }
       if (navigator.share) {
         try {
-          await navigator.share({ title: SITE_TITLE, text: SITE_DESC, url: SITE_URL });
+          await navigator.share({ url: SITE_URL });
         } catch (e) { /* 사용자가 취소함 */ }
         return;
       }
