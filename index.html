@@ -63,16 +63,22 @@
     .title-bar .name { font-size: 15px; font-weight: 700; }
     .title-bar .ref  { font-size: 13px; font-weight: 700; }
 
-    .lines { flex: 1; }
-    .line {
-      font-size: 17px;
-      line-height: 1.85;
-      margin: 0 4px 10px;
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity .3s ease, transform .3s ease;
+    .lines {
+      flex: 1;
+      font-size: 18px;
+      line-height: 2;
+      padding: 0 4px;
+      word-break: keep-all;
     }
-    .line.show { opacity: 1; transform: none; }
+    .word {
+      display: inline-block;
+      margin-right: .35em;
+      opacity: 0;
+      transform: translateY(5px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
+    .word.show { opacity: 1; transform: none; }
+    .word.blank { opacity: 1; transform: none; color: #ddd; letter-spacing: -1px; }
 
     .hint {
       text-align: center;
@@ -127,7 +133,7 @@
       <span class="ref" id="ref"></span>
     </div>
     <div class="lines" id="lines"></div>
-    <div class="hint" id="hint">화면을 터치하면 한 단락씩 보여요</div>
+    <div class="hint" id="hint">화면을 터치하면 한 단어씩 보여요</div>
   </div>
 
   <div class="bottom">
@@ -147,13 +153,7 @@
         minorEn: "Beginning with Christ",
         name: "1. 구원의 확신",
         ref: "요일5:11,12",
-        lines: [
-          "또 증거는 이것이니,",
-          "하나님이 우리에게 영생을 주신 것과",
-          "이 생명이 그의 아들 안에 있는 그것이니라.",
-          "아들이 있는 자에게는 생명이 있고,",
-          "하나님의 아들이 없는 자에게는 생명이 없느니라."
-        ]
+        text: "또 증거는 이것이니, 하나님이 우리에게 영생을 주신 것과 이 생명이 그의 아들 안에 있는 그것이니라. 아들이 있는 자에게는 생명이 있고, 하나님의 아들이 없는 자에게는 생명이 없느니라."
       },
       {
         major: "5확신",
@@ -161,12 +161,7 @@
         minorEn: "Beginning with Christ",
         name: "2. 기도응답의 확신",
         ref: "요16:24",
-        lines: [
-          "지금까지는 너희가 내 이름으로",
-          "아무 것도 구하지 아니하였으나,",
-          "구하라 그리하면 받으리니",
-          "너희 기쁨이 충만하리라."
-        ]
+        text: "지금까지는 너희가 내 이름으로 아무 것도 구하지 아니하였으나, 구하라 그리하면 받으리니 너희 기쁨이 충만하리라."
       },
       {
         major: "5확신",
@@ -174,14 +169,7 @@
         minorEn: "Beginning with Christ",
         name: "3. 승리의 확신",
         ref: "고전10:13",
-        lines: [
-          "사람이 감당할 시험밖에는",
-          "너희에게 당한 것이 없나니,",
-          "오직 하나님은 미쁘사",
-          "너희가 감당치 못할 시험당함을 허락지 아니하시고,",
-          "시험당할 즈음에 또한 피할 길을 내사",
-          "너희로 능히 감당하게 하시느니라."
-        ]
+        text: "사람이 감당할 시험밖에는 너희에게 당한 것이 없나니, 오직 하나님은 미쁘사 너희가 감당치 못할 시험당함을 허락지 아니하시고, 시험당할 즈음에 또한 피할 길을 내사 너희로 능히 감당하게 하시느니라."
       },
       {
         major: "5확신",
@@ -189,11 +177,7 @@
         minorEn: "Beginning with Christ",
         name: "4. 사죄의 확신",
         ref: "요일1:9",
-        lines: [
-          "만일 우리가 우리 죄를 자백하면,",
-          "저는 미쁘시고 의로우사 우리 죄를 사하시며,",
-          "모든 불의에서 우리를 깨끗케 하실 것이요."
-        ]
+        text: "만일 우리가 우리 죄를 자백하면, 저는 미쁘시고 의로우사 우리 죄를 사하시며, 모든 불의에서 우리를 깨끗케 하실 것이요."
       },
       {
         major: "5확신",
@@ -201,12 +185,7 @@
         minorEn: "Beginning with Christ",
         name: "5. 인도의 확신",
         ref: "잠3:5,6",
-        lines: [
-          "너는 마음을 다하여 여호와를 의뢰하고,",
-          "네 명철을 의지하지 말라.",
-          "너는 범사에 그를 인정하라.",
-          "그리하면 네 길을 지도하시리라."
-        ]
+        text: "너는 마음을 다하여 여호와를 의뢰하고, 네 명철을 의지하지 말라. 너는 범사에 그를 인정하라. 그리하면 네 길을 지도하시리라."
       }
     ];
 
@@ -214,6 +193,7 @@
     let shown = 0;
 
     const $ = id => document.getElementById(id);
+    const words = v => v.text.split(/\s+/);
 
     function render() {
       const v = VERSES[index];
@@ -226,21 +206,26 @@
 
       const box = $("lines");
       box.innerHTML = "";
-      v.lines.forEach((text, i) => {
-        const p = document.createElement("p");
-        p.className = "line" + (i < shown ? " show" : "");
-        p.textContent = text;
-        box.appendChild(p);
+      words(v).forEach((w, i) => {
+        const span = document.createElement("span");
+        if (i < shown) {
+          span.className = "word show";
+          span.textContent = w;
+        } else {
+          span.className = "word blank";
+          span.textContent = "_".repeat(Math.max(2, w.length));
+        }
+        box.appendChild(span);
       });
 
       $("hint").classList.toggle("hidden", shown > 0);
       $("prev").disabled = index === 0;
       $("next").disabled = index === VERSES.length - 1;
-      $("revealAll").disabled = shown >= v.lines.length;
+      $("revealAll").disabled = shown >= words(v).length;
     }
 
-    function showNextLine() {
-      if (shown < VERSES[index].lines.length) {
+    function showNextWord() {
+      if (shown < words(VERSES[index]).length) {
         shown++;
         render();
       }
@@ -254,8 +239,8 @@
       render();
     }
 
-    $("card").addEventListener("click", showNextLine);
-    $("revealAll").addEventListener("click", () => { shown = VERSES[index].lines.length; render(); });
+    $("card").addEventListener("click", showNextWord);
+    $("revealAll").addEventListener("click", () => { shown = words(VERSES[index]).length; render(); });
     $("prev").addEventListener("click", () => go(-1));
     $("next").addEventListener("click", () => go(1));
 
