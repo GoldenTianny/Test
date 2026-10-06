@@ -2,13 +2,275 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>새 프로젝트</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>암송 카드</title>
   <style>
-    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif; background: #fafafa; color: #333; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: #fff;
+      color: #222;
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+      user-select: none;
+    }
+
+    /* 상단: 대주제 > 소주제 */
+    .top {
+      padding: 14px 16px 10px;
+      border-bottom: 2px solid #333;
+    }
+    .top .major {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid #333;
+      padding: 1px 7px;
+      margin-bottom: 6px;
+    }
+    .top .minor {
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .top .minor-en {
+      font-size: 12px;
+      color: #666;
+      font-weight: 400;
+      margin-left: 4px;
+    }
+
+    /* 카드 본문 */
+    .card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 16px;
+      cursor: pointer;
+    }
+    .title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      background: #e6e6e6;
+      border-top: 1px solid #333;
+      border-bottom: 1px solid #333;
+      padding: 7px 10px;
+      margin: 14px 0 12px;
+    }
+    .title-bar .name { font-size: 15px; font-weight: 700; }
+    .title-bar .ref  { font-size: 13px; font-weight: 700; }
+
+    .lines { flex: 1; }
+    .line {
+      font-size: 17px;
+      line-height: 1.85;
+      margin: 0 4px 10px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .3s ease, transform .3s ease;
+    }
+    .line.show { opacity: 1; transform: none; }
+
+    .hint {
+      text-align: center;
+      color: #aaa;
+      font-size: 13px;
+      padding: 10px 0 4px;
+    }
+    .hint.hidden { visibility: hidden; }
+
+    /* 하단 컨트롤 */
+    .bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 20px;
+      border-top: 1px solid #ccc;
+    }
+    .nav {
+      width: 46px; height: 46px;
+      border: 1px solid #333;
+      border-radius: 50%;
+      background: #fff;
+      font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .nav:disabled { opacity: .25; cursor: default; }
+    .counter { font-size: 13px; color: #666; }
+    .reveal {
+      border: 1px solid #333;
+      background: #fff;
+      padding: 9px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .reveal:active, .nav:active { background: #eee; }
+    .right { display: flex; align-items: center; gap: 10px; }
   </style>
 </head>
 <body>
-  <h1>새 프로젝트 준비 중</h1>
+
+  <div class="top">
+    <div class="major" id="major"></div>
+    <div class="minor"><span id="minor"></span><span class="minor-en" id="minorEn"></span></div>
+  </div>
+
+  <div class="card" id="card">
+    <div class="title-bar">
+      <span class="name" id="name"></span>
+      <span class="ref" id="ref"></span>
+    </div>
+    <div class="lines" id="lines"></div>
+    <div class="hint" id="hint">화면을 터치하면 한 단락씩 보여요</div>
+  </div>
+
+  <div class="bottom">
+    <button class="nav" id="prev" aria-label="이전">◀</button>
+    <span class="counter" id="counter"></span>
+    <div class="right">
+      <button class="reveal" id="revealAll">모두 확인</button>
+      <button class="nav" id="next" aria-label="다음">▶</button>
+    </div>
+  </div>
+
+  <script>
+    const VERSES = [
+      {
+        major: "5확신",
+        minor: "그리스도와의 새출발",
+        minorEn: "Beginning with Christ",
+        name: "1. 구원의 확신",
+        ref: "요일5:11,12",
+        lines: [
+          "또 증거는 이것이니,",
+          "하나님이 우리에게 영생을 주신 것과",
+          "이 생명이 그의 아들 안에 있는 그것이니라.",
+          "아들이 있는 자에게는 생명이 있고,",
+          "하나님의 아들이 없는 자에게는 생명이 없느니라."
+        ]
+      },
+      {
+        major: "5확신",
+        minor: "그리스도와의 새출발",
+        minorEn: "Beginning with Christ",
+        name: "2. 기도응답의 확신",
+        ref: "요16:24",
+        lines: [
+          "지금까지는 너희가 내 이름으로",
+          "아무 것도 구하지 아니하였으나,",
+          "구하라 그리하면 받으리니",
+          "너희 기쁨이 충만하리라."
+        ]
+      },
+      {
+        major: "5확신",
+        minor: "그리스도와의 새출발",
+        minorEn: "Beginning with Christ",
+        name: "3. 승리의 확신",
+        ref: "고전10:13",
+        lines: [
+          "사람이 감당할 시험밖에는",
+          "너희에게 당한 것이 없나니,",
+          "오직 하나님은 미쁘사",
+          "너희가 감당치 못할 시험당함을 허락지 아니하시고,",
+          "시험당할 즈음에 또한 피할 길을 내사",
+          "너희로 능히 감당하게 하시느니라."
+        ]
+      },
+      {
+        major: "5확신",
+        minor: "그리스도와의 새출발",
+        minorEn: "Beginning with Christ",
+        name: "4. 사죄의 확신",
+        ref: "요일1:9",
+        lines: [
+          "만일 우리가 우리 죄를 자백하면,",
+          "저는 미쁘시고 의로우사 우리 죄를 사하시며,",
+          "모든 불의에서 우리를 깨끗케 하실 것이요."
+        ]
+      },
+      {
+        major: "5확신",
+        minor: "그리스도와의 새출발",
+        minorEn: "Beginning with Christ",
+        name: "5. 인도의 확신",
+        ref: "잠3:5,6",
+        lines: [
+          "너는 마음을 다하여 여호와를 의뢰하고,",
+          "네 명철을 의지하지 말라.",
+          "너는 범사에 그를 인정하라.",
+          "그리하면 네 길을 지도하시리라."
+        ]
+      }
+    ];
+
+    let index = 0;
+    let shown = 0;
+
+    const $ = id => document.getElementById(id);
+
+    function render() {
+      const v = VERSES[index];
+      $("major").textContent = v.major;
+      $("minor").textContent = v.minor;
+      $("minorEn").textContent = v.minorEn ? "(" + v.minorEn + ")" : "";
+      $("name").textContent = v.name;
+      $("ref").textContent = v.ref;
+      $("counter").textContent = (index + 1) + " / " + VERSES.length;
+
+      const box = $("lines");
+      box.innerHTML = "";
+      v.lines.forEach((text, i) => {
+        const p = document.createElement("p");
+        p.className = "line" + (i < shown ? " show" : "");
+        p.textContent = text;
+        box.appendChild(p);
+      });
+
+      $("hint").classList.toggle("hidden", shown > 0);
+      $("prev").disabled = index === 0;
+      $("next").disabled = index === VERSES.length - 1;
+      $("revealAll").disabled = shown >= v.lines.length;
+    }
+
+    function showNextLine() {
+      if (shown < VERSES[index].lines.length) {
+        shown++;
+        render();
+      }
+    }
+
+    function go(delta) {
+      const n = index + delta;
+      if (n < 0 || n >= VERSES.length) return;
+      index = n;
+      shown = 0;
+      render();
+    }
+
+    $("card").addEventListener("click", showNextLine);
+    $("revealAll").addEventListener("click", () => { shown = VERSES[index].lines.length; render(); });
+    $("prev").addEventListener("click", () => go(-1));
+    $("next").addEventListener("click", () => go(1));
+
+    // 좌우 스와이프로도 이동
+    let touchX = null;
+    document.addEventListener("touchstart", e => { touchX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener("touchend", e => {
+      if (touchX === null) return;
+      const dx = e.changedTouches[0].clientX - touchX;
+      touchX = null;
+      if (dx < -60) go(1);
+      else if (dx > 60) go(-1);
+    });
+
+    render();
+  </script>
 </body>
 </html>
