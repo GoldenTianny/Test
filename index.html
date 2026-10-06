@@ -117,12 +117,65 @@
     }
     .reveal:active, .nav:active { background: #eee; }
     .right { display: flex; align-items: center; gap: 10px; }
+
+    .app { flex: 1; display: flex; flex-direction: column; }
+    .top-row { display: flex; justify-content: space-between; align-items: center; }
+    .home {
+      border: 1px solid #333;
+      background: #fff;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+    .home:active { background: #eee; }
+
+    /* 시작 메뉴 */
+    .menu {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px;
+    }
+    .menu-title { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-align: center; }
+    .menu-sub { font-size: 13px; color: #777; text-align: center; margin: 6px 0 28px; }
+    .menu-list { display: flex; flex-direction: column; gap: 12px; }
+    .menu-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      background: #fff;
+      border: 1px solid #333;
+      padding: 14px 16px;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      color: #222;
+    }
+    .menu-item:active { background: #eee; }
+    .menu-major { font-size: 12px; font-weight: 700; border: 1px solid #333; padding: 1px 7px; }
+    .menu-minor { font-size: 17px; font-weight: 700; }
+    .menu-minor small { font-size: 12px; color: #666; font-weight: 400; }
+    .menu-count { font-size: 12px; color: #777; }
   </style>
 </head>
 <body>
 
+  <div class="menu" id="menu">
+    <div class="menu-title">SCRIPTURE MEMORY</div>
+    <div class="menu-sub">암송할 묶음을 고르세요</div>
+    <div class="menu-list" id="menuList"></div>
+  </div>
+
+  <div class="app" id="app">
   <div class="top">
-    <div class="major" id="major"></div>
+    <div class="top-row">
+      <div class="major" id="major"></div>
+      <button class="home" id="home">목록</button>
+    </div>
     <div class="minor"><span id="minor"></span><span class="minor-en" id="minorEn"></span></div>
   </div>
 
@@ -143,65 +196,83 @@
       <button class="nav" id="next" aria-label="다음">▶</button>
     </div>
   </div>
+  </div>
 
   <script>
-    const VERSES = [
+    const SETS = [
       {
         major: "5확신",
         minor: "그리스도와의 새출발",
         minorEn: "Beginning with Christ",
-        name: "1. 구원의 확신",
-        ref: "요일5:11,12",
-        text: "또 증거는 이것이니, 하나님이 우리에게 영생을 주신 것과 이 생명이 그의 아들 안에 있는 그것이니라. 아들이 있는 자에게는 생명이 있고, 하나님의 아들이 없는 자에게는 생명이 없느니라."
+        verses: [
+          { name: "1. 구원의 확신", ref: "요일5:11,12",
+            text: "또 증거는 이것이니, 하나님이 우리에게 영생을 주신 것과 이 생명이 그의 아들 안에 있는 그것이니라. 아들이 있는 자에게는 생명이 있고, 하나님의 아들이 없는 자에게는 생명이 없느니라." },
+          { name: "2. 기도응답의 확신", ref: "요16:24",
+            text: "지금까지는 너희가 내 이름으로 아무 것도 구하지 아니하였으나, 구하라 그리하면 받으리니 너희 기쁨이 충만하리라." },
+          { name: "3. 승리의 확신", ref: "고전10:13",
+            text: "사람이 감당할 시험밖에는 너희에게 당한 것이 없나니, 오직 하나님은 미쁘사 너희가 감당치 못할 시험당함을 허락지 아니하시고, 시험당할 즈음에 또한 피할 길을 내사 너희로 능히 감당하게 하시느니라." },
+          { name: "4. 사죄의 확신", ref: "요일1:9",
+            text: "만일 우리가 우리 죄를 자백하면, 저는 미쁘시고 의로우사 우리 죄를 사하시며, 모든 불의에서 우리를 깨끗케 하실 것이요." },
+          { name: "5. 인도의 확신", ref: "잠3:5,6",
+            text: "너는 마음을 다하여 여호와를 의뢰하고, 네 명철을 의지하지 말라. 너는 범사에 그를 인정하라. 그리하면 네 길을 지도하시리라." }
+        ]
       },
       {
-        major: "5확신",
-        minor: "그리스도와의 새출발",
-        minorEn: "Beginning with Christ",
-        name: "2. 기도응답의 확신",
-        ref: "요16:24",
-        text: "지금까지는 너희가 내 이름으로 아무 것도 구하지 아니하였으나, 구하라 그리하면 받으리니 너희 기쁨이 충만하리라."
-      },
-      {
-        major: "5확신",
-        minor: "그리스도와의 새출발",
-        minorEn: "Beginning with Christ",
-        name: "3. 승리의 확신",
-        ref: "고전10:13",
-        text: "사람이 감당할 시험밖에는 너희에게 당한 것이 없나니, 오직 하나님은 미쁘사 너희가 감당치 못할 시험당함을 허락지 아니하시고, 시험당할 즈음에 또한 피할 길을 내사 너희로 능히 감당하게 하시느니라."
-      },
-      {
-        major: "5확신",
-        minor: "그리스도와의 새출발",
-        minorEn: "Beginning with Christ",
-        name: "4. 사죄의 확신",
-        ref: "요일1:9",
-        text: "만일 우리가 우리 죄를 자백하면, 저는 미쁘시고 의로우사 우리 죄를 사하시며, 모든 불의에서 우리를 깨끗케 하실 것이요."
-      },
-      {
-        major: "5확신",
-        minor: "그리스도와의 새출발",
-        minorEn: "Beginning with Christ",
-        name: "5. 인도의 확신",
-        ref: "잠3:5,6",
-        text: "너는 마음을 다하여 여호와를 의뢰하고, 네 명철을 의지하지 말라. 너는 범사에 그를 인정하라. 그리하면 네 길을 지도하시리라."
+        major: "8구절",
+        minor: "그리스도 안의 새생활",
+        minorEn: "Going On with Christ",
+        verses: [
+          { name: "1. 그리스도 안의 생활", ref: "요15:5",
+            text: "나는 포도나무요 너희는 가지니, 저가 내 안에 내가 저 안에 있으면 이 사람은 과실을 많이 맺나니 나를 떠나서는 너희가 아무 것도 할 수 없음이라." },
+          { name: "2. 하나님의 말씀에 의한 생활", ref: "행20:32",
+            text: "지금 내가 너희를 주와 및 그 은혜의 말씀께 부탁하노니 그 말씀이 너희를 능히 든든히 세우사 거룩케 하심을 입은 모든 자 가운데 기업이 있게 하시리라." },
+          { name: "3. 하나님의 성령에 의한 생활", ref: "롬8:14",
+            text: "무릇 하나님의 영으로 인도함을 받는 그들은 곧 하나님의 아들이라." },
+          { name: "4. 믿음에 의한 생활", ref: "고후5:7",
+            text: "이는 우리가 믿음으로 행하고 보는 것으로 하지 아니함이로라." },
+          { name: "5. 사랑에 의한 생활", ref: "요일4:11",
+            text: "사랑하는 자들아 하나님이 이같이 우리를 사랑하셨은즉 우리도 서로 사랑하는 것이 마땅하도다." },
+          { name: "6. 그리스도인의 교제하는 생활", ref: "요일1:7",
+            text: "저가 빛 가운데 계신 것같이 우리도 빛 가운데 행하면 우리가 서로 사귐이 있고 그 아들 예수의 피가 우리를 모든 죄에서 깨끗하게 하실 것이요." },
+          { name: "7. 증인으로서의 생활", ref: "벧전3:15",
+            text: "너희 마음에 그리스도를 주로 삼아 거룩하게 하고, 너희 속에 있는 소망에 관한 이유를 묻는 자에게는 대답할 것을 항상 예비하되 온유와 두려움으로 하고." },
+          { name: "8. 후히 드리는 생활", ref: "고후9:7",
+            text: "각각 그 마음에 정한 대로 할 것이요 인색함으로나 억지로 하지 말지니 하나님은 즐겨 내는 자를 사랑하시느니라." }
+        ]
       }
     ];
 
+    let setIndex = 0;
     let index = 0;
     let shown = 0;
 
     const $ = id => document.getElementById(id);
     const words = v => v.text.split(/\s+/);
+    const current = () => SETS[setIndex];
+
+    function showMenu() {
+      $("menu").style.display = "flex";
+      $("app").style.display = "none";
+    }
+
+    function openSet(i) {
+      setIndex = i;
+      index = 0;
+      shown = 0;
+      $("menu").style.display = "none";
+      $("app").style.display = "flex";
+      render();
+    }
 
     function render() {
-      const v = VERSES[index];
-      $("major").textContent = v.major;
-      $("minor").textContent = v.minor;
-      $("minorEn").textContent = v.minorEn ? "(" + v.minorEn + ")" : "";
+      const set = current();
+      const v = set.verses[index];
+      $("major").textContent = set.major;
+      $("minor").textContent = set.minor;
+      $("minorEn").textContent = set.minorEn ? "(" + set.minorEn + ")" : "";
       $("name").textContent = v.name;
       $("ref").textContent = v.ref;
-      $("counter").textContent = (index + 1) + " / " + VERSES.length;
+      $("counter").textContent = (index + 1) + " / " + set.verses.length;
 
       const box = $("lines");
       box.innerHTML = "";
@@ -214,12 +285,12 @@
 
       $("hint").classList.toggle("hidden", shown > 0);
       $("prev").disabled = index === 0;
-      $("next").disabled = index === VERSES.length - 1;
+      $("next").disabled = index === set.verses.length - 1;
       $("revealAll").disabled = shown >= words(v).length;
     }
 
     function showNextWord() {
-      if (shown < words(VERSES[index]).length) {
+      if (shown < words(current().verses[index]).length) {
         shown++;
         render();
       }
@@ -227,21 +298,33 @@
 
     function go(delta) {
       const n = index + delta;
-      if (n < 0 || n >= VERSES.length) return;
+      if (n < 0 || n >= current().verses.length) return;
       index = n;
       shown = 0;
       render();
     }
 
+    // 메뉴 만들기
+    SETS.forEach((set, i) => {
+      const btn = document.createElement("button");
+      btn.className = "menu-item";
+      btn.innerHTML = '<span class="menu-major">' + set.major + '</span>' +
+                      '<span class="menu-minor">' + set.minor + ' <small>(' + set.minorEn + ')</small></span>' +
+                      '<span class="menu-count">' + set.verses.length + '구절</span>';
+      btn.addEventListener("click", () => openSet(i));
+      $("menuList").appendChild(btn);
+    });
+
     $("card").addEventListener("click", showNextWord);
-    $("revealAll").addEventListener("click", () => { shown = words(VERSES[index]).length; render(); });
+    $("revealAll").addEventListener("click", () => { shown = words(current().verses[index]).length; render(); });
     $("prev").addEventListener("click", () => go(-1));
     $("next").addEventListener("click", () => go(1));
+    $("home").addEventListener("click", showMenu);
 
     // 좌우 스와이프로도 이동
     let touchX = null;
-    document.addEventListener("touchstart", e => { touchX = e.touches[0].clientX; }, { passive: true });
-    document.addEventListener("touchend", e => {
+    $("app").addEventListener("touchstart", e => { touchX = e.touches[0].clientX; }, { passive: true });
+    $("app").addEventListener("touchend", e => {
       if (touchX === null) return;
       const dx = e.changedTouches[0].clientX - touchX;
       touchX = null;
@@ -249,7 +332,7 @@
       else if (dx > 60) go(-1);
     });
 
-    render();
+    showMenu();
   </script>
 </body>
 </html>
