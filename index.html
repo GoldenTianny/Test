@@ -148,8 +148,6 @@
     .home:active { background: #eee; }
     .top-btns { display: flex; gap: 6px; }
     .top-left { display: flex; align-items: center; gap: 6px; }
-    .slot-badge { display: none; font-size: 12px; font-weight: 700; background: #333; color: #fff; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; }
-    .slot-badge.show { display: inline-block; }
     #addToWallet.in { background: #333; color: #fff; }
 
     /* 아래에서 올라오는 선택창 */
@@ -407,7 +405,6 @@
     <div class="top-row">
       <div class="top-left">
         <div class="major" id="major"></div>
-        <div class="slot-badge" id="slotBadge"></div>
       </div>
       <div class="top-btns">
         <button class="home" id="addToWallet">👛 넣기</button>
@@ -504,8 +501,7 @@
       $("minor").textContent = set ? set.minor : deck.minor;
       const en = set ? set.minorEn : deck.minorEn;
       $("minorEn").textContent = en ? "(" + en + ")" : "";
-      $("slotBadge").textContent = v.slotName ? "👛 " + v.slotName : "";
-      $("slotBadge").classList.toggle("show", !!v.slotName);
+
       $("name").textContent = titleShown ? v.name : "· · ·";
       $("name").classList.toggle("hidden-title", !titleShown);
       $("sub").textContent = v.sub || "";
