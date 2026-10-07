@@ -305,6 +305,17 @@
     .icon-btn:active { background: #eee; }
     .icon-btn:disabled { opacity: .25; cursor: default; }
     .icon-btn.wide { width: auto; padding: 0 10px; border-radius: 16px; font-size: 12px; font-weight: 700; }
+    .vrow.draggable { cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; background: #fff; }
+    .vrow.lifted {
+      background: #fffbe6;
+      box-shadow: 0 4px 14px rgba(0,0,0,.25);
+      border: 1px solid #333;
+      border-radius: 6px;
+      transform: scale(1.02);
+      z-index: 2; position: relative;
+    }
+    .slot-rows { min-height: 20px; }
+    .drag-tip { font-size: 12px; color: #999; text-align: center; padding: 4px 0 10px; }
     .vrow { gap: 5px; }
     .vrow .vfrom { display: none; }
 
@@ -344,6 +355,7 @@
       <div class="screen-title">암송지갑</div>
       <span class="screen-spacer"></span>
     </div>
+    <div class="drag-tip">구절을 길게 누른 채 끌면 순서와 칸을 바꿀 수 있어요</div>
     <div class="screen-body" id="walletBody"></div>
   </div>
 
@@ -550,12 +562,6 @@
       saveWallet();
       return true;
     }
-    function swapInSlot(k, a, b) {
-      const ids = wallet.slots[k].ids;
-      if (b < 0 || b >= ids.length) return;
-      [ids[a], ids[b]] = [ids[b], ids[a]];
-      saveWallet();
-    }
     function updateWalletSummary() {
       $("walletSummary").textContent = wallet.slots.map(sl => sl.name + " " + sl.ids.length + "/" + sl.cap).join(" · ");
     }
@@ -590,44 +596,118 @@
         actions.appendChild(add);
         box.appendChild(actions);
 
+        const rows = document.createElement("div");
+        rows.className = "slot-rows";
+        rows.dataset.slot = k;
         if (sl.ids.length === 0) {
           const e = document.createElement("div");
           e.className = "empty";
-          e.textContent = "아직 비어 있어요. 「+ 구절 추가」로 담아 보세요.";
-          box.appendChild(e);
+          e.textContent = "아직 비어 있어요. 「+ 구절 추가」로 담거나, 구절을 길게 눌러 끌어다 놓으세요.";
+          rows.appendChild(e);
         }
         sl.ids.forEach(id => {
           const v = verseById(id), set = setById(id);
           const row = document.createElement("div");
-          row.className = "vrow";
+          row.className = "vrow draggable";
+          row.dataset.id = id;
           row.innerHTML = '<span class="vref">' + v.ref + '</span>' +
                           '<span class="vname">' + v.name.replace(/^\d+\. /, "") + '</span>' +
                           '<span class="vfrom">' + set.major + '</span>';
-          const pos = sl.ids.indexOf(id);
-          const up = document.createElement("button");
-          up.className = "icon-btn"; up.textContent = "▲"; up.title = "위로";
-          up.disabled = pos === 0;
-          up.addEventListener("click", () => { swapInSlot(k, pos, pos - 1); renderWallet(); });
-          const dn = document.createElement("button");
-          dn.className = "icon-btn"; dn.textContent = "▼"; dn.title = "아래로";
-          dn.disabled = pos === sl.ids.length - 1;
-          dn.addEventListener("click", () => { swapInSlot(k, pos, pos + 1); renderWallet(); });
           const mv = document.createElement("button");
           mv.className = "icon-btn wide"; mv.textContent = "이동"; mv.title = "다른 칸으로 옮기기";
           mv.addEventListener("click", () => openSheet(id, renderWallet));
           const del = document.createElement("button");
           del.className = "icon-btn"; del.textContent = "✕"; del.title = "지갑에서 빼기";
           del.addEventListener("click", () => { removeFromWallet(id); saveWallet(); renderWallet(); });
-          row.appendChild(up);
-          row.appendChild(dn);
           row.appendChild(mv);
           row.appendChild(del);
-          box.appendChild(row);
+          rows.appendChild(row);
         });
+        box.appendChild(rows);
         body.appendChild(box);
       });
     }
     function openWallet() { renderWallet(); show("wallet"); }
+
+    // ---------- 길게 눌러 끌어서 순서 바꾸기 ----------
+    const drag = { timer: null, row: null, active: false, startX: 0, startY: 0, hint: null };
+    const HOLD_MS = 350;
+
+    function pointOf(e) {
+      const t = e.touches ? e.touches[0] || e.changedTouches[0] : e;
+      return { x: t.clientX, y: t.clientY };
+    }
+    function dragStart(e) {
+      const row = e.target.closest(".vrow.draggable");
+      if (!row || e.target.closest("button")) return;
+      const pt = pointOf(e);
+      drag.row = row; drag.startX = pt.x; drag.startY = pt.y; drag.active = false;
+      clearTimeout(drag.timer);
+      drag.timer = setTimeout(() => {
+        drag.active = true;
+        row.classList.add("lifted");
+        if (navigator.vibrate) navigator.vibrate(15);
+      }, HOLD_MS);
+    }
+    function dragMove(e) {
+      if (!drag.row) return;
+      const pt = pointOf(e);
+      if (!drag.active) {
+        // 길게 누르기 전에 움직이면 그냥 스크롤로 봐요
+        if (Math.abs(pt.x - drag.startX) > 10 || Math.abs(pt.y - drag.startY) > 10) dragCancel();
+        return;
+      }
+      e.preventDefault();
+      const el = document.elementFromPoint(pt.x, pt.y);
+      if (!el) return;
+      const over = el.closest(".vrow.draggable");
+      const rows = el.closest(".slot-rows");
+      if (over && over !== drag.row) {
+        const r = over.getBoundingClientRect();
+        const before = pt.y < r.top + r.height / 2;
+        over.parentNode.insertBefore(drag.row, before ? over : over.nextSibling);
+      } else if (rows && !rows.contains(drag.row)) {
+        rows.appendChild(drag.row);   // 빈 칸이나 칸 끝에 놓기
+      }
+      // 자동 스크롤 (화면 위/아래 가장자리)
+      const body = $("walletBody"), b = body.getBoundingClientRect();
+      if (pt.y < b.top + 50) body.scrollTop -= 8;
+      else if (pt.y > b.bottom - 50) body.scrollTop += 8;
+    }
+    function dragEnd() {
+      clearTimeout(drag.timer);
+      if (drag.active && drag.row) commitDragOrder();
+      dragCancel();
+    }
+    function dragCancel() {
+      clearTimeout(drag.timer);
+      if (drag.row) drag.row.classList.remove("lifted");
+      drag.row = null; drag.active = false;
+    }
+    function commitDragOrder() {
+      const next = wallet.slots.map(sl => ({ ...sl, ids: [] }));
+      document.querySelectorAll("#walletBody .slot-rows").forEach(rows => {
+        const k = Number(rows.dataset.slot);
+        next[k].ids = [...rows.querySelectorAll(".vrow.draggable")].map(r => r.dataset.id);
+      });
+      const over = next.find(sl => sl.ids.length > sl.cap);
+      if (over) {
+        alert("「" + over.name + "」 칸이 가득 차서 옮길 수 없어요.");
+      } else {
+        wallet.slots = next;
+        saveWallet();
+      }
+      renderWallet();
+    }
+    const wb = $("walletBody");
+    wb.addEventListener("touchstart", dragStart, { passive: true });
+    wb.addEventListener("touchmove", dragMove, { passive: false });
+    wb.addEventListener("touchend", dragEnd);
+    wb.addEventListener("touchcancel", dragCancel);
+    wb.addEventListener("mousedown", dragStart);
+    document.addEventListener("mousemove", dragMove);
+    document.addEventListener("mouseup", dragEnd);
+    wb.addEventListener("contextmenu", e => { if (drag.row) e.preventDefault(); });
 
     // ---------- 구절 고르기 ----------
     let pickSlot = 0;
