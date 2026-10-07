@@ -677,6 +677,8 @@
       drag.row = row; drag.startX = pt.x; drag.startY = pt.y; drag.active = false;
       clearTimeout(drag.timer);
       drag.timer = setTimeout(() => {
+        closeSwipe();
+        row.querySelector(".vrow-inner").style.transform = "";
         drag.active = true;
         row.classList.add("lifted");
         if (navigator.vibrate) navigator.vibrate(15);
