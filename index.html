@@ -489,9 +489,9 @@
       show("app");
       render();
     }
-    function openSet(i) {
+    function openSet(i, start) {
       const set = SETS[i];
-      openDeck({ major: set.major, minor: set.minor, minorEn: set.minorEn, verses: set.verses, from: "menu" });
+      openDeck({ major: set.major, minor: set.minor, minorEn: set.minorEn, verses: set.verses, from: "menu", setIndex: i }, start);
     }
 
     function render() {
@@ -524,8 +524,9 @@
 
       $("hint").textContent = titleShown ? "화면을 터치하면 한 단어씩 보여요" : "화면을 터치하면 소제목이 보여요";
       $("hint").classList.toggle("hidden", shown > 0);
-      $("prev").disabled = index === 0;
-      $("next").disabled = index === deck.verses.length - 1;
+      const linked = deck.setIndex !== undefined;
+      $("prev").disabled = index === 0 && !(linked && deck.setIndex > 0);
+      $("next").disabled = index === deck.verses.length - 1 && !(linked && deck.setIndex < SETS.length - 1);
       $("revealAll").disabled = shown >= words(v).length;
     }
 
@@ -543,7 +544,14 @@
 
     function go(delta) {
       const n = index + delta;
-      if (n < 0 || n >= deck.verses.length) return;
+      if (n < 0 || n >= deck.verses.length) {
+        // 묶음 끝에서는 다음/이전 묶음으로 이어서 넘어가요 (목록에서 연 경우)
+        if (deck.setIndex === undefined) return;
+        const si = deck.setIndex + delta;
+        if (si < 0 || si >= SETS.length) return;
+        openSet(si, delta > 0 ? 0 : SETS[si].verses.length - 1);
+        return;
+      }
       index = n;
       shown = 0;
       titleShown = false;
