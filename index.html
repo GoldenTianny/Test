@@ -312,7 +312,7 @@
       display: block;
     }
     .vrow-inner {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
       padding: 12px 4px; background: #fff; position: relative; z-index: 1; width: 100%; box-sizing: border-box;
       transition: transform .18s ease;
     }
@@ -470,9 +470,9 @@
     let shown = 0;          // 보여준 단어 수
     let titleShown = false; // 소제목(주제)을 보여줬는지
 
-    function openDeck(d) {
+    function openDeck(d, start) {
       deck = d;
-      index = 0;
+      index = start || 0;
       shown = 0;
       titleShown = false;
       $("home").textContent = "목록";
@@ -487,7 +487,7 @@
     function render() {
       const v = deck.verses[index];
       $("major").textContent = deck.major;
-      $("minor").textContent = deck.minor;
+      $("minor").textContent = v.slotName || deck.minor;
       $("minorEn").textContent = deck.minorEn ? "(" + deck.minorEn + ")" : "";
       $("name").textContent = titleShown ? v.name : "· · ·";
       $("name").classList.toggle("hidden-title", !titleShown);
@@ -618,10 +618,7 @@
         study.className = "btn primary";
         study.textContent = "암송하기";
         study.disabled = sl.ids.length === 0;
-        study.addEventListener("click", () => {
-          openDeck({ major: "암송지갑", minor: sl.name, minorEn: "", from: "wallet",
-                     verses: sl.ids.map(verseById) });
-        });
+        study.addEventListener("click", () => openWalletDeck(sl.ids[0]));
         const add = document.createElement("button");
         add.className = "btn";
         add.textContent = "+ 구절 추가";
@@ -666,6 +663,15 @@
       });
     }
     function openWallet() { renderWallet(); show("wallet"); }
+
+    // 지갑 전체(새 구절 → 복습 1 → 복습 2)를 한 덱으로 이어서 암송해요
+    function openWalletDeck(startId) {
+      const verses = [];
+      wallet.slots.forEach(sl => sl.ids.forEach(id => verses.push({ ...verseById(id), slotName: sl.name })));
+      if (!verses.length) return;
+      const start = Math.max(0, verses.findIndex(v => v.id === startId));
+      openDeck({ major: "암송지갑", minor: "", minorEn: "", from: "wallet", verses }, start);
+    }
 
     // ---------- 길게 눌러 끌어서 순서 바꾸기 ----------
     const drag = { timer: null, row: null, active: false, startX: 0, startY: 0, hint: null };
@@ -735,8 +741,9 @@
     }
     function dragEnd() {
       clearTimeout(drag.timer);
-      if (drag.active && drag.row) commitDragOrder();
+      if (drag.active && drag.row) { drag.justMoved = true; commitDragOrder(); }
       else if (swipe.mode === "h" && swipe.row) {
+        drag.justMoved = true;
         const row = swipe.row;
         if (swipe.dx < -SWIPE_W / 3) {
           if (swipe.open && swipe.open !== row) closeSwipe();
@@ -757,6 +764,7 @@
       swipe.row = null; swipe.mode = null;
       if (drag.row) drag.row.classList.remove("lifted");
       drag.row = null; drag.active = false;
+      setTimeout(() => { drag.justMoved = false; }, 300);
     }
     function commitDragOrder() {
       const next = wallet.slots.map(sl => ({ ...sl, ids: [] }));
@@ -784,7 +792,9 @@
     wb.addEventListener("contextmenu", e => { if (drag.row) e.preventDefault(); });
     wb.addEventListener("click", e => {
       const row = e.target.closest(".vrow.draggable");
-      if (swipe.open && (!row || row !== swipe.open || !e.target.closest(".vrow-actions"))) closeSwipe();
+      if (swipe.open && (!row || row !== swipe.open || !e.target.closest(".vrow-actions"))) { closeSwipe(); return; }
+      if (drag.justMoved) { drag.justMoved = false; return; }
+      if (row && e.target.closest(".vrow-inner")) openWalletDeck(row.dataset.id);
     });
 
     // ---------- 구절 고르기 ----------

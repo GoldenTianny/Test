@@ -1923,7 +1923,7 @@ const SETS = [
   ]
  },
  {
-  "major": "SERIES 180구절",
+  "major": "180구절",
   "minor": "1. 하나님을 알아감",
   "minorEn": "",
   "verses": [
@@ -2146,7 +2146,7 @@ const SETS = [
   ]
  },
  {
-  "major": "SERIES 180구절",
+  "major": "180구절",
   "minor": "2. 사랑 안에서 자라감",
   "minorEn": "",
   "verses": [
@@ -2369,7 +2369,7 @@ const SETS = [
   ]
  },
  {
-  "major": "SERIES 180구절",
+  "major": "180구절",
   "minor": "3. 믿음 안에서 자라감",
   "minorEn": "",
   "verses": [
@@ -2592,7 +2592,7 @@ const SETS = [
   ]
  },
  {
-  "major": "SERIES 180구절",
+  "major": "180구절",
   "minor": "4. 승리 안에서 행함",
   "minorEn": "",
   "verses": [
@@ -2815,7 +2815,7 @@ const SETS = [
   ]
  },
  {
-  "major": "SERIES 180구절",
+  "major": "180구절",
   "minor": "5. 그리스도를 증거함",
   "minorEn": "",
   "verses": [
