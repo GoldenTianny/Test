@@ -296,7 +296,8 @@
       font-size: 14px;
     }
     .vrow .vref { font-weight: 700; white-space: nowrap; }
-    .vrow .vname { flex: 1; color: #555; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vrow .vname { flex: 1; color: #222; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vrow .vpath { color: #888; }
     .vrow .vfrom { font-size: 11px; color: #999; white-space: nowrap; }
     .icon-btn {
       width: 32px; height: 32px; border: 1px solid #999; border-radius: 50%;
@@ -396,7 +397,8 @@
     <div class="top-row">
       <div class="major" id="major"></div>
       <div class="top-btns">
-        <button class="home" id="addToWallet">👛 지갑에 넣기</button>
+        <button class="home" id="addToWallet">👛 넣기</button>
+        <button class="home" id="goWallet">지갑</button>
         <button class="home" id="home">목록</button>
       </div>
     </div>
@@ -473,7 +475,7 @@
       index = 0;
       shown = 0;
       titleShown = false;
-      $("home").textContent = d.from === "wallet" ? "지갑" : "목록";
+      $("home").textContent = "목록";
       show("app");
       render();
     }
@@ -504,7 +506,7 @@
       });
 
       const where = slotOf(v.id);
-      $("addToWallet").textContent = where >= 0 ? "👛 " + wallet.slots[where].name : "👛 지갑에 넣기";
+      $("addToWallet").textContent = where >= 0 ? "👛 " + wallet.slots[where].name : "👛 넣기";
       $("addToWallet").classList.toggle("in", where >= 0);
 
       $("hint").textContent = titleShown ? "화면을 터치하면 한 단어씩 보여요" : "화면을 터치하면 소제목이 보여요";
@@ -572,6 +574,17 @@
     }
     function setById(id) { return SETS[Number(id.split(":")[0])]; }
     function slotOf(id) { return wallet.slots.findIndex(sl => sl.ids.includes(id)); }
+    // "60구절 › A › 소제목" 처럼 분류 경로를 만들어요
+    const shortLabel = t => { const m = (t || "").match(/^\(?([A-Za-z0-9\-]+|[IVX]+)\)?[\.\)]?\s/); return m ? m[1] : ""; };
+    function pathOf(id) {
+      const set = setById(id), v = verseById(id);
+      const parts = [set.major];
+      const sameMajor = SETS.filter(x => x.major === set.major).length > 1;
+      if (sameMajor) parts.push(shortLabel(set.minor) || set.minor);
+      const subShort = shortLabel(v.sub);
+      if (subShort) parts.push(subShort);
+      return parts;
+    }
     function removeFromWallet(id) {
       wallet.slots.forEach(sl => { sl.ids = sl.ids.filter(x => x !== id); });
     }
@@ -634,7 +647,8 @@
           row.dataset.id = id;
           row.innerHTML =
             '<div class="vrow-inner"><span class="vref">' + v.ref + '</span>' +
-            '<span class="vname">' + v.name.replace(/^\d+\. /, "") + '</span></div>' +
+            '<span class="vname"><span class="vpath">' + pathOf(id).join(" › ") + ' › </span>' +
+            v.name.replace(/^\d+\. /, "") + '</span></div>' +
             '<div class="vrow-actions"></div>';
           const acts = row.querySelector(".vrow-actions");
           const mv = document.createElement("button");
@@ -908,7 +922,8 @@
     $("revealAll").addEventListener("click", () => { titleShown = true; shown = words(deck.verses[index]).length; render(); });
     $("prev").addEventListener("click", () => go(-1));
     $("next").addEventListener("click", () => go(1));
-    $("home").addEventListener("click", () => { if (deck && deck.from === "wallet") openWallet(); else showMenu(); });
+    $("home").addEventListener("click", showMenu);
+    $("goWallet").addEventListener("click", openWallet);
 
     // 좌우 스와이프로도 이동
     let touchX = null;
