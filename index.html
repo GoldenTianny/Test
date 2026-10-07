@@ -304,6 +304,9 @@
     }
     .icon-btn:active { background: #eee; }
     .icon-btn:disabled { opacity: .25; cursor: default; }
+    .icon-btn.wide { width: auto; padding: 0 10px; border-radius: 16px; font-size: 12px; font-weight: 700; }
+    .vrow { gap: 5px; }
+    .vrow .vfrom { display: none; }
 
     /* 구절 고르기 */
     .picker-slot { padding: 8px 16px; font-size: 13px; color: #555; border-bottom: 1px solid #ccc; background: #fafafa; }
@@ -547,6 +550,12 @@
       saveWallet();
       return true;
     }
+    function swapInSlot(k, a, b) {
+      const ids = wallet.slots[k].ids;
+      if (b < 0 || b >= ids.length) return;
+      [ids[a], ids[b]] = [ids[b], ids[a]];
+      saveWallet();
+    }
     function updateWalletSummary() {
       $("walletSummary").textContent = wallet.slots.map(sl => sl.name + " " + sl.ids.length + "/" + sl.cap).join(" · ");
     }
@@ -594,18 +603,24 @@
           row.innerHTML = '<span class="vref">' + v.ref + '</span>' +
                           '<span class="vname">' + v.name.replace(/^\d+\. /, "") + '</span>' +
                           '<span class="vfrom">' + set.major + '</span>';
-          const down = document.createElement("button");
-          down.className = "icon-btn";
-          down.textContent = "↓";
-          down.title = "다음 칸으로";
-          down.disabled = k >= wallet.slots.length - 1 || wallet.slots[k + 1].ids.length >= wallet.slots[k + 1].cap;
-          down.addEventListener("click", () => { addToSlot(k + 1, id); renderWallet(); });
+          const pos = sl.ids.indexOf(id);
+          const up = document.createElement("button");
+          up.className = "icon-btn"; up.textContent = "▲"; up.title = "위로";
+          up.disabled = pos === 0;
+          up.addEventListener("click", () => { swapInSlot(k, pos, pos - 1); renderWallet(); });
+          const dn = document.createElement("button");
+          dn.className = "icon-btn"; dn.textContent = "▼"; dn.title = "아래로";
+          dn.disabled = pos === sl.ids.length - 1;
+          dn.addEventListener("click", () => { swapInSlot(k, pos, pos + 1); renderWallet(); });
+          const mv = document.createElement("button");
+          mv.className = "icon-btn wide"; mv.textContent = "이동"; mv.title = "다른 칸으로 옮기기";
+          mv.addEventListener("click", () => openSheet(id, renderWallet));
           const del = document.createElement("button");
-          del.className = "icon-btn";
-          del.textContent = "✕";
-          del.title = "지갑에서 빼기";
+          del.className = "icon-btn"; del.textContent = "✕"; del.title = "지갑에서 빼기";
           del.addEventListener("click", () => { removeFromWallet(id); saveWallet(); renderWallet(); });
-          row.appendChild(down);
+          row.appendChild(up);
+          row.appendChild(dn);
+          row.appendChild(mv);
           row.appendChild(del);
           box.appendChild(row);
         });
@@ -679,9 +694,9 @@
     }
 
     // ---------- 카드 화면에서 지갑에 넣기 ----------
-    function openSheet() {
-      const v = deck.verses[index];
-      const where = slotOf(v.id);
+    function openSheet(id, onDone) {
+      const v = verseById(id);
+      const where = slotOf(id);
       $("sheetTitle").textContent = v.ref + " · " + (where >= 0 ? "지금은 「" + wallet.slots[where].name + "」에 있어요" : "어느 칸에 넣을까요?");
       const list = $("sheetList");
       list.innerHTML = "";
@@ -692,17 +707,17 @@
         b.innerHTML = '<span>' + sl.name + (k === where ? ' ✓' : '') + '</span><small>' + sl.ids.length + ' / ' + sl.cap + (full ? ' · 가득 참' : '') + '</small>';
         b.disabled = full;
         b.addEventListener("click", () => {
-          if (k === where) removeFromWallet(v.id), saveWallet();
-          else addToSlot(k, v.id);
+          if (k === where) { removeFromWallet(id); saveWallet(); }
+          else addToSlot(k, id);
           closeSheet();
-          render();
+          onDone();
         });
         list.appendChild(b);
       });
       $("sheetBg").classList.add("open");
     }
     function closeSheet() { $("sheetBg").classList.remove("open"); }
-    $("addToWallet").addEventListener("click", openSheet);
+    $("addToWallet").addEventListener("click", () => openSheet(deck.verses[index].id, render));
     $("sheetCancel").addEventListener("click", closeSheet);
     $("sheetBg").addEventListener("click", e => { if (e.target === $("sheetBg")) closeSheet(); });
 
