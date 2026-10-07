@@ -76,6 +76,7 @@
     }
     .sub-bar { font-size: 12px; color: #666; margin: 12px 0 -8px; padding: 0 2px; }
     .title-bar .name { font-size: 15px; font-weight: 700; }
+    .title-bar .name.hidden-title { color: #999; letter-spacing: 2px; }
     .title-bar .ref  { font-size: 13px; font-weight: 700; }
 
     .lines {
@@ -428,12 +429,14 @@
     // ---------- 카드 (덱 단위로 동작) ----------
     let deck = null;        // { major, minor, minorEn, verses, from }
     let index = 0;
-    let shown = 0;
+    let shown = 0;          // 보여준 단어 수
+    let titleShown = false; // 소제목(주제)을 보여줬는지
 
     function openDeck(d) {
       deck = d;
       index = 0;
       shown = 0;
+      titleShown = false;
       $("home").textContent = d.from === "wallet" ? "지갑" : "목록";
       show("app");
       render();
@@ -448,9 +451,10 @@
       $("major").textContent = deck.major;
       $("minor").textContent = deck.minor;
       $("minorEn").textContent = deck.minorEn ? "(" + deck.minorEn + ")" : "";
-      $("name").textContent = v.name;
+      $("name").textContent = titleShown ? v.name : "· · ·";
+      $("name").classList.toggle("hidden-title", !titleShown);
       $("sub").textContent = v.sub || "";
-      $("sub").style.display = v.sub ? "" : "none";
+      $("sub").style.display = (v.sub && titleShown) ? "" : "none";
       $("ref").textContent = v.ref;
       $("counter").textContent = (index + 1) + " / " + deck.verses.length;
 
@@ -467,6 +471,7 @@
       $("addToWallet").textContent = where >= 0 ? "👛 " + wallet.slots[where].name : "👛 지갑에 넣기";
       $("addToWallet").classList.toggle("in", where >= 0);
 
+      $("hint").textContent = titleShown ? "화면을 터치하면 한 단어씩 보여요" : "화면을 터치하면 소제목이 보여요";
       $("hint").classList.toggle("hidden", shown > 0);
       $("prev").disabled = index === 0;
       $("next").disabled = index === deck.verses.length - 1;
@@ -474,6 +479,11 @@
     }
 
     function showNextWord() {
+      if (!titleShown) {
+        titleShown = true;
+        render();
+        return;
+      }
       if (shown < words(deck.verses[index]).length) {
         shown++;
         render();
@@ -485,6 +495,7 @@
       if (n < 0 || n >= deck.verses.length) return;
       index = n;
       shown = 0;
+      titleShown = false;
       render();
     }
 
@@ -735,7 +746,7 @@
     });
 
     $("card").addEventListener("click", showNextWord);
-    $("revealAll").addEventListener("click", () => { shown = words(deck.verses[index]).length; render(); });
+    $("revealAll").addEventListener("click", () => { titleShown = true; shown = words(deck.verses[index]).length; render(); });
     $("prev").addEventListener("click", () => go(-1));
     $("next").addEventListener("click", () => go(1));
     $("home").addEventListener("click", () => { if (deck && deck.from === "wallet") openWallet(); else showMenu(); });
