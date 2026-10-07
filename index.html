@@ -315,17 +315,6 @@
       padding: 12px 4px; background: #fff; position: relative; z-index: 1; width: 100%; box-sizing: border-box;
       transition: transform .18s ease;
     }
-    .vrow-actions {
-      position: absolute; top: 0; right: 0; bottom: 0; width: 132px;
-      display: flex;
-    }
-    .act {
-      flex: 1; border: none; color: #fff; font-size: 14px; font-weight: 700;
-      font-family: inherit; cursor: pointer;
-    }
-    .act.move { background: #666; }
-    .act.del { background: #d33; }
-    .act:active { filter: brightness(.85); }
     .vrow.lifted {
       background: #fffbe6;
       box-shadow: 0 4px 14px rgba(0,0,0,.25);
@@ -336,7 +325,15 @@
     }
     .vrow.lifted .vrow-inner { background: transparent; }
     .slot-rows { min-height: 20px; }
-    .drag-tip { font-size: 12px; color: #999; text-align: center; padding: 4px 0 10px; }
+    .drag-tip { font-size: 12px; color: #999; text-align: center; padding: 4px 16px 10px; }
+    .trash {
+      display: none; align-items: center; justify-content: center;
+      margin: 0 16px 16px; padding: 18px;
+      border: 2px dashed #c33; border-radius: 10px;
+      color: #c33; font-size: 14px; font-weight: 700; background: #fff5f5;
+    }
+    .trash.show { display: flex; }
+    .trash.hot { background: #d33; color: #fff; border-style: solid; }
     .vrow { gap: 5px; }
     .vrow .vfrom { display: none; }
 
@@ -376,8 +373,9 @@
       <div class="screen-title">암송지갑</div>
       <span class="screen-spacer"></span>
     </div>
-    <div class="drag-tip">구절을 길게 누른 채 끌면 순서와 칸을 바꿀 수 있어요</div>
+    <div class="drag-tip">구절을 길게 누른 채 끌어서 순서·칸을 바꾸거나, 아래 휴지통에 놓아 빼세요</div>
     <div class="screen-body" id="walletBody"></div>
+    <div class="trash" id="trash">🗑 여기에 놓으면 지갑에서 빠져요</div>
   </div>
 
   <!-- 구절 고르기 -->
@@ -588,7 +586,6 @@
     }
 
     function renderWallet() {
-      swipe.open = null;
       const body = $("walletBody");
       body.innerHTML = "";
       wallet.slots.forEach((sl, k) => {
@@ -634,17 +631,7 @@
           row.dataset.id = id;
           row.innerHTML =
             '<div class="vrow-inner"><span class="vref">' + v.ref + '</span>' +
-            '<span class="vname">' + v.name.replace(/^\d+\. /, "") + '</span></div>' +
-            '<div class="vrow-actions"></div>';
-          const acts = row.querySelector(".vrow-actions");
-          const mv = document.createElement("button");
-          mv.className = "act move"; mv.textContent = "이동";
-          mv.addEventListener("click", () => { closeSwipe(); openSheet(id, renderWallet); });
-          const del = document.createElement("button");
-          del.className = "act del"; del.textContent = "삭제";
-          del.addEventListener("click", () => { removeFromWallet(id); saveWallet(); renderWallet(); });
-          acts.appendChild(mv);
-          acts.appendChild(del);
+            '<span class="vname">' + v.name.replace(/^\d+\. /, "") + '</span></div>';
           rows.appendChild(row);
         });
         box.appendChild(rows);
@@ -656,13 +643,7 @@
     // ---------- 길게 눌러 끌어서 순서 바꾸기 ----------
     const drag = { timer: null, row: null, active: false, startX: 0, startY: 0, hint: null };
     const HOLD_MS = 350;
-    const swipe = { row: null, dx: 0, mode: null, open: null };   // mode: null | "h"(가로) | "v"(세로)
-    const SWIPE_W = 132;
-
-    function closeSwipe() {
-      if (swipe.open) { swipe.open.classList.remove("open"); swipe.open.querySelector(".vrow-inner").style.transform = ""; }
-      swipe.open = null;
-    }
+    const swipe = { mode: null };   // 길게 누르기 전 움직임이 가로인지 세로인지
 
     function pointOf(e) {
       const t = e.touches ? e.touches[0] || e.changedTouches[0] : e;
@@ -670,15 +651,15 @@
     }
     function dragStart(e) {
       const row = e.target.closest(".vrow.draggable");
-      if (swipe.open && swipe.open !== row) closeSwipe();
       if (!row || e.target.closest("button")) return;
       const pt = pointOf(e);
-      swipe.row = row; swipe.dx = 0; swipe.mode = null;
+      swipe.mode = null;
       drag.row = row; drag.startX = pt.x; drag.startY = pt.y; drag.active = false;
       clearTimeout(drag.timer);
       drag.timer = setTimeout(() => {
         drag.active = true;
         row.classList.add("lifted");
+        $("trash").classList.add("show");
         if (navigator.vibrate) navigator.vibrate(15);
       }, HOLD_MS);
     }
@@ -687,22 +668,16 @@
       const pt = pointOf(e);
       if (!drag.active) {
         const dx = pt.x - drag.startX, dy = pt.y - drag.startY;
-        // 길게 누르기 전에 움직이면: 가로면 밀어서 열기, 세로면 그냥 스크롤
-        if (swipe.mode === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-          swipe.mode = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
-          clearTimeout(drag.timer);
-        }
-        if (swipe.mode === "h" && swipe.row) {
-          e.preventDefault();
-          const base = swipe.open === swipe.row ? -SWIPE_W : 0;
-          swipe.dx = Math.max(-SWIPE_W, Math.min(0, base + dx));
-          swipe.row.querySelector(".vrow-inner").style.transform = "translateX(" + swipe.dx + "px)";
-        }
+        // 길게 누르기 전에 움직이면 그냥 스크롤로 봐요
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) dragCancel();
         return;
       }
       e.preventDefault();
       const el = document.elementFromPoint(pt.x, pt.y);
       if (!el) return;
+      drag.overTrash = !!el.closest("#trash");
+      $("trash").classList.toggle("hot", drag.overTrash);
+      if (drag.overTrash) return;
       const over = el.closest(".vrow.draggable");
       const rows = el.closest(".slot-rows");
       if (over && over !== drag.row) {
@@ -719,26 +694,16 @@
     }
     function dragEnd() {
       clearTimeout(drag.timer);
-      if (drag.active && drag.row) commitDragOrder();
-      else if (swipe.mode === "h" && swipe.row) {
-        const row = swipe.row;
-        if (swipe.dx < -SWIPE_W / 3) {
-          if (swipe.open && swipe.open !== row) closeSwipe();
-          row.classList.add("open");
-          row.querySelector(".vrow-inner").style.transform = "translateX(-" + SWIPE_W + "px)";
-          swipe.open = row;
-        } else {
-          row.classList.remove("open");
-          row.querySelector(".vrow-inner").style.transform = "";
-          if (swipe.open === row) swipe.open = null;
-        }
+      if (drag.active && drag.row) {
+        if (drag.overTrash) { removeFromWallet(drag.row.dataset.id); saveWallet(); renderWallet(); }
+        else commitDragOrder();
       }
-      swipe.row = null; swipe.mode = null;
       dragCancel();
     }
     function dragCancel() {
       clearTimeout(drag.timer);
-      swipe.row = null; swipe.mode = null;
+      $("trash").classList.remove("show", "hot");
+      drag.overTrash = false;
       if (drag.row) drag.row.classList.remove("lifted");
       drag.row = null; drag.active = false;
     }
@@ -759,17 +724,14 @@
     }
     const wb = $("walletBody");
     wb.addEventListener("touchstart", dragStart, { passive: true });
-    wb.addEventListener("touchmove", dragMove, { passive: false });
-    wb.addEventListener("touchend", dragEnd);
-    wb.addEventListener("touchcancel", dragCancel);
+    document.addEventListener("touchmove", dragMove, { passive: false });
+    document.addEventListener("touchend", dragEnd);
+    document.addEventListener("touchcancel", dragCancel);
     wb.addEventListener("mousedown", dragStart);
     document.addEventListener("mousemove", dragMove);
     document.addEventListener("mouseup", dragEnd);
     wb.addEventListener("contextmenu", e => { if (drag.row) e.preventDefault(); });
-    wb.addEventListener("click", e => {
-      const row = e.target.closest(".vrow.draggable");
-      if (swipe.open && (!row || row !== swipe.open || !e.target.closest(".vrow-actions"))) closeSwipe();
-    });
+
 
     // ---------- 구절 고르기 ----------
     let pickSlot = 0;
