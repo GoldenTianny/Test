@@ -277,7 +277,14 @@
     .slot-name { font-size: 15px; font-weight: 700; flex: 1; }
     .slot-count { font-size: 13px; color: #555; }
     .slot-count.full { color: #c00; font-weight: 700; }
-    .slot-actions { display: flex; gap: 8px; padding: 10px 2px 4px; }
+    .slot-add {
+      width: 30px; height: 30px; margin-left: 4px;
+      border: 1px solid #333; border-radius: 50%; background: #fff;
+      font-size: 20px; line-height: 1; color: #222; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; padding: 0 0 2px;
+    }
+    .slot-add:active { background: #333; color: #fff; }
+    .slot-add:disabled { opacity: .3; cursor: default; }
     .btn {
       border: 1px solid #333; background: #fff; color: #222;
       padding: 8px 14px; font-size: 13px; font-weight: 700; border-radius: 4px;
@@ -611,22 +618,13 @@
         box.innerHTML =
           '<div class="slot-head"><span class="slot-name">' + sl.name + '</span>' +
           '<span class="slot-count' + (full ? ' full' : '') + '">' + sl.ids.length + ' / ' + sl.cap + '</span></div>';
-
-        const actions = document.createElement("div");
-        actions.className = "slot-actions";
-        const study = document.createElement("button");
-        study.className = "btn primary";
-        study.textContent = "암송하기";
-        study.disabled = sl.ids.length === 0;
-        study.addEventListener("click", () => openWalletDeck(sl.ids[0]));
         const add = document.createElement("button");
-        add.className = "btn";
-        add.textContent = "+ 구절 추가";
+        add.className = "slot-add";
+        add.textContent = "+";
+        add.title = "구절 추가";
         add.disabled = full;
         add.addEventListener("click", () => openPicker(k));
-        actions.appendChild(study);
-        actions.appendChild(add);
-        box.appendChild(actions);
+        box.querySelector(".slot-head").appendChild(add);
 
         const rows = document.createElement("div");
         rows.className = "slot-rows";
@@ -634,7 +632,7 @@
         if (sl.ids.length === 0) {
           const e = document.createElement("div");
           e.className = "empty";
-          e.textContent = "아직 비어 있어요. 「+ 구절 추가」로 담거나, 구절을 길게 눌러 끌어다 놓으세요.";
+          e.textContent = "아직 비어 있어요. 오른쪽 + 로 담거나, 구절을 길게 눌러 끌어다 놓으세요.";
           rows.appendChild(e);
         }
         sl.ids.forEach(id => {
