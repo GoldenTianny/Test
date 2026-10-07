@@ -308,10 +308,11 @@
     .vrow.draggable {
       cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
       background: #fff; position: relative; overflow: hidden; padding: 0; gap: 0;
+      display: block;
     }
     .vrow-inner {
       display: flex; align-items: center; gap: 8px;
-      padding: 12px 4px; background: #fff; position: relative; z-index: 1;
+      padding: 12px 4px; background: #fff; position: relative; z-index: 1; width: 100%; box-sizing: border-box;
       transition: transform .18s ease;
     }
     .vrow-actions {
