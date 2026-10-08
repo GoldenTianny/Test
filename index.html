@@ -114,7 +114,7 @@
       border-top: 1px solid #ccc;
     }
     .nav {
-      width: 44px; height: 44px; flex-shrink: 0;
+      width: 40px; height: 40px; flex-shrink: 0;
       border: 1px solid #333;
       border-radius: 50%;
       background: #fff;
@@ -136,7 +136,7 @@
     }
     .reveal:active, .nav:active { background: #eee; }
     .right { display: flex; align-items: center; gap: 6px; }
-    .counter { white-space: nowrap; }
+    .counter { white-space: nowrap; margin-bottom: 6px; }
 
     .app { flex: 1; display: flex; flex-direction: column; }
     .top-row { display: flex; justify-content: space-between; align-items: center; }
@@ -289,7 +289,8 @@
       cursor: pointer;
     }
     .wallet-btn:active { background: #eee; }
-    #toggleHint.on { background: #333; color: #fff; }
+    .nav.hintnav { font-size: 20px; }
+    .nav.hintnav.on { background: #ffe066; border-color: #d4a800; }
     .wallet-row { display: flex; gap: 8px; margin-bottom: 6px; }
     .wallet-row .wallet-btn { flex: 1; margin-bottom: 0; }
     .hint-btn {
@@ -533,10 +534,10 @@
     <div class="top-row">
       <div class="top-left">
         <div class="major" id="major"></div>
+        <span class="counter" id="counter"></span>
       </div>
       <div class="top-btns">
         <button class="home" id="addToWallet">👛 넣기</button>
-        <button class="home" id="toggleHint">💡 힌트</button>
         <button class="home" id="goWallet">지갑</button>
         <button class="home" id="home">목록</button>
       </div>
@@ -560,10 +561,10 @@
 
   <div class="bottom">
     <button class="nav" id="prev" aria-label="이전">◀</button>
-    <span class="counter" id="counter"></span>
     <div class="right">
       <button class="learned" id="learnedBtn" title="확실히 외운 구절로 표시">✓ 외움</button>
       <button class="reveal" id="revealAll">모두 확인</button>
+      <button class="nav hintnav" id="toggleHint" aria-label="힌트" title="힌트">💡</button>
       <button class="nav" id="next" aria-label="다음">▶</button>
       <button class="nav back" id="back" aria-label="뒤로">‹</button>
     </div>
