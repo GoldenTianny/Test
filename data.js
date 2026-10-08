@@ -415,7 +415,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "I. 구원의 확신",
   "minorEn": "",
   "verses": [
@@ -530,7 +530,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "II. QUIET TIME",
   "minorEn": "",
   "verses": [
@@ -693,7 +693,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "III. 말씀",
   "minorEn": "",
   "verses": [
@@ -922,7 +922,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "IV. 기도",
   "minorEn": "",
   "verses": [
@@ -1121,7 +1121,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "V. 교제",
   "minorEn": "",
   "verses": [
@@ -1308,7 +1308,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "VI. 증거",
   "minorEn": "",
   "verses": [
@@ -1645,7 +1645,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "VII. 그리스도의 주재권",
   "minorEn": "",
   "verses": [
@@ -1808,7 +1808,7 @@ const SETS = [
   ]
  },
  {
-  "major": "100구절",
+  "major": "242구절",
   "minor": "VIII. 세계비전",
   "minorEn": "",
   "verses": [
