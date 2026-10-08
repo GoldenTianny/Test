@@ -150,8 +150,8 @@
     .top-btns { display: flex; gap: 6px; }
     .top-left { display: flex; align-items: center; gap: 6px; }
     .back {
-      width: 30px; height: 30px; border: 1px solid #333; border-radius: 50%; background: #fff;
-      font-size: 22px; line-height: 1; color: #222; cursor: pointer; margin-bottom: 6px;
+      width: 34px; height: 30px; border: 1px solid #333; border-radius: 4px; background: #333; color: #fff;
+      font-size: 22px; line-height: 1; cursor: pointer; margin-bottom: 6px;
       display: flex; align-items: center; justify-content: center; padding: 0 0 3px;
     }
     .back:active { background: #eee; }
@@ -532,7 +532,6 @@
   <div class="top">
     <div class="top-row">
       <div class="top-left">
-        <button class="back" id="back" aria-label="뒤로">‹</button>
         <div class="major" id="major"></div>
       </div>
       <div class="top-btns">
@@ -540,6 +539,7 @@
         <button class="home" id="toggleHint">💡 힌트</button>
         <button class="home" id="goWallet">지갑</button>
         <button class="home" id="home">목록</button>
+        <button class="back" id="back" aria-label="뒤로">‹</button>
       </div>
     </div>
     <div class="minor"><span id="minor"></span><span class="minor-en" id="minorEn"></span></div>
