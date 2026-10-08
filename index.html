@@ -148,6 +148,12 @@
     .home:active { background: #eee; }
     .top-btns { display: flex; gap: 6px; }
     .top-left { display: flex; align-items: center; gap: 6px; }
+    .back {
+      width: 30px; height: 30px; border: 1px solid #333; border-radius: 50%; background: #fff;
+      font-size: 22px; line-height: 1; color: #222; cursor: pointer; margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: center; padding: 0 0 3px;
+    }
+    .back:active { background: #eee; }
     #addToWallet.in { background: #333; color: #fff; }
 
     /* 아래에서 올라오는 선택창 */
@@ -468,6 +474,7 @@
   <div class="top">
     <div class="top-row">
       <div class="top-left">
+        <button class="back" id="back" aria-label="뒤로">‹</button>
         <div class="major" id="major"></div>
       </div>
       <div class="top-btns">
@@ -544,6 +551,34 @@
     }
     function showMenu() { updateWalletSummary(); if (menuHintOpen) renderMenuHint(); show("menu"); }
 
+    // ---------- 뒤로가기 (휴대폰 뒤로가기 버튼/제스처와 ‹ 버튼) ----------
+    // 화면이 바뀔 때마다 브라우저 기록에 한 칸씩 남겨서, 뒤로가기를 누르면 앱이 닫히지 않고 이전 화면으로 가요.
+    let applyingHistory = false;
+    function pushNav(state) {
+      if (applyingHistory) return;
+      try { history.pushState(state, ""); } catch (e) {}
+    }
+    function applyNav(state) {
+      applyingHistory = true;
+      try {
+        if (!state || state.screen === "menu") {
+          if (state && state.hint !== undefined) {
+            menuHintOpen = state.hint; menuHintBook = state.book || null;
+            $("menuHintPanel").classList.toggle("open", menuHintOpen);
+            $("menuHintBtn").classList.toggle("on", menuHintOpen);
+            $("menuList").style.display = menuHintOpen ? "none" : "";
+          } else { menuHintOpen = false; menuHintBook = null;
+            $("menuHintPanel").classList.remove("open"); $("menuHintBtn").classList.remove("on"); $("menuList").style.display = ""; }
+          showMenu();
+        }
+        else if (state.screen === "wallet") openWallet();
+        else if (state.screen === "picker") { pickSlot = state.slot; pickSet = state.set; renderPicker(); show("picker"); }
+        else if (state.screen === "app") { if (deck) { show("app"); render(); } else showMenu(); }
+      } finally { applyingHistory = false; }
+    }
+    window.addEventListener("popstate", e => applyNav(e.state));
+    function goBack() { history.back(); }
+
     // ---------- 카드 (덱 단위로 동작) ----------
     let deck = null;        // { major, minor, minorEn, verses, from }
     let index = 0;
@@ -551,6 +586,7 @@
     let titleShown = false; // 소제목(주제)을 보여줬는지
 
     function openDeck(d, start) {
+      pushNav({ screen: "app" });
       deck = d;
       index = start || 0;
       shown = 0;
@@ -747,7 +783,7 @@
         body.appendChild(box);
       });
     }
-    function openWallet() { renderWallet(); show("wallet"); }
+    function openWallet() { pushNav({ screen: "wallet" }); renderWallet(); show("wallet"); }
 
     // ---------- 외운 구절 표시 ----------
     const LEARNED_KEY = "learned.v1";
@@ -827,6 +863,7 @@
     let menuHintOpen = false, menuHintBook = null;
     function toggleMenuHint() {
       menuHintOpen = !menuHintOpen;
+      pushNav({ screen: "menu", hint: menuHintOpen, book: null });
       $("menuHintPanel").classList.toggle("open", menuHintOpen);
       $("menuHintBtn").classList.toggle("on", menuHintOpen);
       $("menuList").style.display = menuHintOpen ? "none" : "";
@@ -851,7 +888,7 @@
             const btn = document.createElement("button");
             btn.className = "book" + (n ? " has" : "");
             btn.innerHTML = '<span>' + name + '</span><small>' + chapters + '장</small>' + (n ? '<span class="n">' + n + '</span>' : '');
-            btn.addEventListener("click", () => { menuHintBook = abbr; renderMenuHint(); });
+            btn.addEventListener("click", () => { menuHintBook = abbr; pushNav({ screen: "menu", hint: true, book: abbr }); renderMenuHint(); });
             grid.appendChild(btn);
           });
           body.appendChild(grid);
@@ -864,7 +901,7 @@
       }
     }
     $("menuHintBtn").addEventListener("click", toggleMenuHint);
-    $("menuHintBack").addEventListener("click", () => { menuHintBook = null; renderMenuHint(); });
+    $("menuHintBack").addEventListener("click", goBack);
     $("toggleHint").addEventListener("click", e => { e.stopPropagation(); toggleHint(); });
     // 힌트 영역을 터치해도 단어가 넘어가지 않게
     $("bookHint").addEventListener("click", e => e.stopPropagation());
@@ -1006,7 +1043,7 @@
     let pickSlot = 0;
     let pickSet = null;   // null이면 묶음 목록, 숫자면 그 묶음의 구절 목록
 
-    function openPicker(k) { pickSlot = k; pickSet = null; renderPicker(); show("picker"); }
+    function openPicker(k) { pickSlot = k; pickSet = null; pushNav({ screen: "picker", slot: k, set: null }); renderPicker(); show("picker"); }
 
     function renderPicker() {
       const sl = wallet.slots[pickSlot];
@@ -1033,7 +1070,7 @@
           btn.style.marginTop = "8px";
           btn.innerHTML = '<span class="menu-minor">' + set.minor + '</span>' +
                           '<span class="menu-count">' + (inThis ? inThis + '개 담김 · ' : '') + set.verses.length + '구절</span>';
-          btn.addEventListener("click", () => { pickSet = i; renderPicker(); });
+          btn.addEventListener("click", () => { pickSet = i; pushNav({ screen: "picker", slot: pickSlot, set: i }); renderPicker(); });
           body.appendChild(btn);
         });
       } else {
@@ -1095,8 +1132,8 @@
     $("sheetBg").addEventListener("click", e => { if (e.target === $("sheetBg")) closeSheet(); });
 
     $("openWallet").addEventListener("click", openWallet);
-    $("walletBack").addEventListener("click", showMenu);
-    $("pickerBack").addEventListener("click", () => { if (pickSet === null) openWallet(); else { pickSet = null; renderPicker(); } });
+    $("walletBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
+    $("pickerBack").addEventListener("click", goBack);
     $("pickerDone").addEventListener("click", openWallet);
 
     // 메뉴 만들기 (대주제를 누르면 소주제 목록이 펼쳐져요)
@@ -1137,7 +1174,8 @@
     $("revealAll").addEventListener("click", () => { titleShown = true; shown = words(deck.verses[index]).length; render(); });
     $("prev").addEventListener("click", () => go(-1));
     $("next").addEventListener("click", () => go(1));
-    $("home").addEventListener("click", showMenu);
+    $("home").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
+    $("back").addEventListener("click", goBack);
     $("goWallet").addEventListener("click", openWallet);
     $("learnedBtn").addEventListener("click", () => { toggleLearned(deck.verses[index].id); render(); });
 
@@ -1188,6 +1226,7 @@
     }
     $("kakaoShare").addEventListener("click", share);
 
+    try { history.replaceState({ screen: "menu" }, ""); } catch (e) {}
     showMenu();
   </script>
 </body>
