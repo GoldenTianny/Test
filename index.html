@@ -818,12 +818,15 @@
       const r = parseRef(v.ref); if (!r) return;
       (BY_BOOK[r.book] ||= {}); (BY_BOOK[r.book][r.chapter] ||= []).push(v);
     }));
+    // 장 안에서는 절 번호 오름차순으로 (예: 요3:16 → 요3:30)
+    const verseNo = ref => Number((ref.match(/:(\d+)/) || [0, 0])[1]);
+    Object.values(BY_BOOK).forEach(chs => Object.values(chs).forEach(list => list.sort((a, b) => verseNo(a.ref) - verseNo(b.ref))));
 
     const learnedCountIn = abbr => Object.values(BY_BOOK[abbr] || {}).flat().filter(v => learned.has(v.id)).length;
     const bookInfo = abbr => BOOKS.find(b => b[0] === abbr) || [abbr, abbr, 0];
 
     // 힌트에서 외운 구절 옆에 본문 첫 몇 마디를 같이 보여줘요. 0으로 바꾸면 안 보여요.
-    const HINT_WORDS = 2;
+    const HINT_WORDS = 0;
     const firstWords = v => HINT_WORDS > 0 ? words(v).slice(0, HINT_WORDS).join(" ") + "…" : "";
 
     // 한 책의 장 목록을 그려요 (카드 힌트와 첫 화면 힌트가 같이 써요)
