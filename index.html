@@ -299,6 +299,7 @@
     .chap .item b { font-weight: 700; }
     .chap .item small { color: #777; font-size: 12px; }
     .chap .more { font-size: 11px; color: #bbb; }
+    .chap .peek { font-size: 13px; color: #555; margin-top: 1px; }
 
     .learned {
       border: 1px solid #333; background: #fff; color: #222;
@@ -821,6 +822,10 @@
     const learnedCountIn = abbr => Object.values(BY_BOOK[abbr] || {}).flat().filter(v => learned.has(v.id)).length;
     const bookInfo = abbr => BOOKS.find(b => b[0] === abbr) || [abbr, abbr, 0];
 
+    // 힌트에서 외운 구절 옆에 본문 첫 몇 마디를 같이 보여줘요. 0으로 바꾸면 안 보여요.
+    const HINT_WORDS = 2;
+    const firstWords = v => HINT_WORDS > 0 ? words(v).slice(0, HINT_WORDS).join(" ") + "…" : "";
+
     // 한 책의 장 목록을 그려요 (카드 힌트와 첫 화면 힌트가 같이 써요)
     function renderChapters(body, abbr, nowChapter) {
       body.innerHTML = "";
@@ -836,7 +841,8 @@
         mine.forEach(x => {
           const it = document.createElement("div");
           it.className = "item";
-          it.innerHTML = '<b>' + x.name.replace(/^\d+\. /, "") + '</b> <small>' + x.ref + ' · ' + setById(x.id).major + '</small>';
+          it.innerHTML = '<b>' + x.name.replace(/^\d+\. /, "") + '</b> <small>' + x.ref + ' · ' + setById(x.id).major + '</small>' +
+                         (HINT_WORDS > 0 ? '<div class="peek">' + firstWords(x) + '</div>' : '');
           it.addEventListener("click", e => { e.stopPropagation(); const [si, vi] = x.id.split(":").map(Number); openSet(si, vi); });
           items.appendChild(it);
         });
