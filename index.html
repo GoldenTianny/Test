@@ -109,11 +109,12 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px 20px;
+      gap: 6px;
+      padding: 12px 12px 20px;
       border-top: 1px solid #ccc;
     }
     .nav {
-      width: 46px; height: 46px;
+      width: 44px; height: 44px; flex-shrink: 0;
       border: 1px solid #333;
       border-radius: 50%;
       background: #fff;
@@ -126,14 +127,16 @@
     .reveal {
       border: 1px solid #333;
       background: #fff;
-      padding: 9px 16px;
+      padding: 9px 10px;
+      white-space: nowrap;
       font-size: 14px;
       font-weight: 700;
       border-radius: 4px;
       cursor: pointer;
     }
     .reveal:active, .nav:active { background: #eee; }
-    .right { display: flex; align-items: center; gap: 10px; }
+    .right { display: flex; align-items: center; gap: 6px; }
+    .counter { white-space: nowrap; }
 
     .app { flex: 1; display: flex; flex-direction: column; }
     .top-row { display: flex; justify-content: space-between; align-items: center; }
@@ -149,11 +152,8 @@
     .home:active { background: #eee; }
     .top-btns { display: flex; gap: 6px; }
     .top-left { display: flex; align-items: center; gap: 6px; }
-    .back {
-      width: 34px; height: 30px; border: 1px solid #333; border-radius: 4px; background: #333; color: #fff;
-      font-size: 22px; line-height: 1; cursor: pointer; margin-bottom: 6px;
-      display: flex; align-items: center; justify-content: center; padding: 0 0 3px;
-    }
+    .nav.back { background: #333; color: #fff; font-size: 26px; padding-bottom: 4px; }
+    .nav.back:active { background: #000; }
     .back:active { background: #eee; }
     #addToWallet.in { background: #333; color: #fff; }
 
@@ -336,7 +336,7 @@
 
     .learned {
       border: 1px solid #333; background: #fff; color: #222;
-      padding: 9px 10px; font-size: 13px; font-weight: 700; border-radius: 4px;
+      padding: 9px 8px; font-size: 13px; font-weight: 700; border-radius: 4px; white-space: nowrap;
       font-family: inherit; cursor: pointer;
     }
     .learned.on { background: #2a7; border-color: #2a7; color: #fff; }
@@ -539,7 +539,6 @@
         <button class="home" id="toggleHint">💡 힌트</button>
         <button class="home" id="goWallet">지갑</button>
         <button class="home" id="home">목록</button>
-        <button class="back" id="back" aria-label="뒤로">‹</button>
       </div>
     </div>
     <div class="minor"><span id="minor"></span><span class="minor-en" id="minorEn"></span></div>
@@ -566,6 +565,7 @@
       <button class="learned" id="learnedBtn" title="확실히 외운 구절로 표시">✓ 외움</button>
       <button class="reveal" id="revealAll">모두 확인</button>
       <button class="nav" id="next" aria-label="다음">▶</button>
+      <button class="nav back" id="back" aria-label="뒤로">‹</button>
     </div>
   </div>
   </div>
