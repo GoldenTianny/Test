@@ -250,6 +250,35 @@
     }
     .wallet-btn:active { background: #eee; }
     #toggleHint.on { background: #333; color: #fff; }
+    .wallet-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .wallet-row .wallet-btn { flex: 1; margin-bottom: 0; }
+    .hint-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      width: 64px; border: 2px solid #333; background: #fff; color: #222;
+      font-family: inherit; font-size: 13px; cursor: pointer;
+    }
+    .hint-btn span { font-size: 20px; }
+    .hint-btn.on { background: #333; color: #fff; }
+    .hint-btn:active { background: #eee; }
+    .hint-panel { display: none; margin-top: 10px; }
+    .hint-panel.open { display: block; }
+    .hint-head { display: flex; align-items: center; gap: 8px; padding: 6px 0 10px; border-bottom: 2px solid #333; }
+    .hint-head .home { margin: 0; }
+    .hint-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .hint-count { font-size: 12px; color: #777; }
+    .hint-note { font-size: 12px; color: #888; padding: 10px 2px 4px; }
+    .testament { font-size: 12px; font-weight: 700; color: #555; margin: 14px 2px 6px; }
+    .books { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .book {
+      border: 1px solid #333; background: #fff; color: #222; padding: 8px 4px;
+      font-family: inherit; font-size: 13px; cursor: pointer; position: relative;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .book small { font-size: 10px; color: #888; }
+    .book.has { background: #333; color: #fff; }
+    .book.has small { color: #ccc; }
+    .book:active { opacity: .7; }
+    .book .n { position: absolute; top: -6px; right: -6px; background: #d33; color: #fff; font-size: 10px; font-weight: 700; border-radius: 10px; padding: 1px 6px; }
     .book-hint { display: none; margin: 8px 0 4px; border-top: 1px dashed #bbb; padding-top: 8px; max-height: 45vh; overflow-y: auto; }
     .book-hint.open { display: block; }
     .book-hint-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; padding: 0 2px 4px; white-space: nowrap; }
@@ -392,12 +421,25 @@
       </button>
     </div>
     <div class="share-msg" id="shareMsg"></div>
-    <button class="wallet-btn" id="openWallet">
-      <span class="wallet-icon">👛</span>
-      <span class="wallet-text"><b>암송지갑</b><small id="walletSummary">이번주 새 구절 · 복습 1 · 복습 2</small></span>
-      <span class="menu-arrow">▸</span>
-    </button>
+    <div class="wallet-row">
+      <button class="wallet-btn" id="openWallet">
+        <span class="wallet-icon">👛</span>
+        <span class="wallet-text"><b>암송지갑</b><small id="walletSummary">이번주 새 구절 · 복습 1 · 복습 2</small></span>
+        <span class="menu-arrow">▸</span>
+      </button>
+      <button class="hint-btn" id="menuHintBtn"><span>💡</span><b>힌트</b></button>
+    </div>
     <div class="menu-list" id="menuList"></div>
+
+    <!-- 힌트: 성경 66권 › 장별로 내가 외운 구절 보기 -->
+    <div class="hint-panel" id="menuHintPanel">
+      <div class="hint-head">
+        <button class="home" id="menuHintBack">← 66권</button>
+        <div class="hint-title" id="menuHintTitle">성경 66권</div>
+        <span class="hint-count" id="menuHintCount"></span>
+      </div>
+      <div id="menuHintBody"></div>
+    </div>
   </div>
 
   <!-- 암송지갑 -->
@@ -500,7 +542,7 @@
         else el.classList.toggle("open", k === id);
       });
     }
-    function showMenu() { updateWalletSummary(); show("menu"); }
+    function showMenu() { updateWalletSummary(); if (menuHintOpen) renderMenuHint(); show("menu"); }
 
     // ---------- 카드 (덱 단위로 동작) ----------
     let deck = null;        // { major, minor, minorEn, verses, from }
@@ -739,33 +781,25 @@
       (BY_BOOK[r.book] ||= {}); (BY_BOOK[r.book][r.chapter] ||= []).push(v);
     }));
 
-    let hintOpen = false;
-    function toggleHint() { hintOpen = !hintOpen; renderHint(); }
-    function renderHint() {
-      $("toggleHint").classList.toggle("on", hintOpen);
-      $("bookHint").classList.toggle("open", hintOpen);
-      if (!hintOpen) return;
-      const v = deck.verses[index];
-      const r = parseRef(v.ref);
-      const body = $("hintBody");
+    const learnedCountIn = abbr => Object.values(BY_BOOK[abbr] || {}).flat().filter(v => learned.has(v.id)).length;
+    const bookInfo = abbr => BOOKS.find(b => b[0] === abbr) || [abbr, abbr, 0];
+
+    // 한 책의 장 목록을 그려요 (카드 힌트와 첫 화면 힌트가 같이 써요)
+    function renderChapters(body, abbr, nowChapter) {
       body.innerHTML = "";
-      if (!r) return;
-      const [abbr, name, chapters] = BOOKS.find(b => b[0] === r.book) || [r.book, r.book, 0];
+      const chapters = bookInfo(abbr)[2];
       const byChap = BY_BOOK[abbr] || {};
-      const mineTotal = Object.values(byChap).flat().filter(x => learned.has(x.id)).length;
-      $("hintTitle").textContent = name;
-      $("hintCount").textContent = "외운 구절 " + mineTotal + "개";
       for (let c = 1; c <= chapters; c++) {
         const all = byChap[c] || [];
         const mine = all.filter(x => learned.has(x.id));
         const row = document.createElement("div");
-        row.className = "chap" + (mine.length ? " has" : "") + (c === r.chapter ? " now" : "");
+        row.className = "chap" + (mine.length ? " has" : "") + (c === nowChapter ? " now" : "");
         row.innerHTML = '<div class="num">' + c + '장</div><div class="items"></div>';
         const items = row.querySelector(".items");
         mine.forEach(x => {
           const it = document.createElement("div");
           it.className = "item";
-          it.innerHTML = '<b>' + x.name.replace(/^\d+\. /, "") + '</b> <small>' + x.ref + '</small>';
+          it.innerHTML = '<b>' + x.name.replace(/^\d+\. /, "") + '</b> <small>' + x.ref + ' · ' + setById(x.id).major + '</small>';
           it.addEventListener("click", e => { e.stopPropagation(); const [si, vi] = x.id.split(":").map(Number); openSet(si, vi); });
           items.appendChild(it);
         });
@@ -774,6 +808,63 @@
         body.appendChild(row);
       }
     }
+
+    // 카드 화면 힌트: 지금 구절의 책만
+    let hintOpen = false;
+    function toggleHint() { hintOpen = !hintOpen; renderHint(); }
+    function renderHint() {
+      $("toggleHint").classList.toggle("on", hintOpen);
+      $("bookHint").classList.toggle("open", hintOpen);
+      if (!hintOpen) return;
+      const r = parseRef(deck.verses[index].ref);
+      if (!r) { $("hintBody").innerHTML = ""; return; }
+      $("hintTitle").textContent = bookInfo(r.book)[1];
+      $("hintCount").textContent = "외운 구절 " + learnedCountIn(r.book) + "개";
+      renderChapters($("hintBody"), r.book, r.chapter);
+    }
+
+    // 첫 화면 힌트: 성경 66권 전체
+    let menuHintOpen = false, menuHintBook = null;
+    function toggleMenuHint() {
+      menuHintOpen = !menuHintOpen;
+      $("menuHintPanel").classList.toggle("open", menuHintOpen);
+      $("menuHintBtn").classList.toggle("on", menuHintOpen);
+      $("menuList").style.display = menuHintOpen ? "none" : "";
+      if (menuHintOpen) { menuHintBook = null; renderMenuHint(); }
+    }
+    function renderMenuHint() {
+      const body = $("menuHintBody");
+      if (menuHintBook === null) {
+        body.innerHTML = "";
+        $("menuHintTitle").textContent = "성경 66권";
+        $("menuHintBack").style.visibility = "hidden";
+        $("menuHintCount").textContent = "외운 구절 " + learned.size + "개";
+        const note = document.createElement("div");
+        note.className = "hint-note";
+        note.textContent = "책을 누르면 장마다 내가 외운 구절이 보여요. 구절 화면의 「✓ 외움」으로 표시해요.";
+        body.appendChild(note);
+        [["구약", 0, 39], ["신약", 39, 66]].forEach(([label, a, b]) => {
+          const h = document.createElement("div"); h.className = "testament"; h.textContent = label; body.appendChild(h);
+          const grid = document.createElement("div"); grid.className = "books";
+          BOOKS.slice(a, b).forEach(([abbr, name, chapters]) => {
+            const n = learnedCountIn(abbr);
+            const btn = document.createElement("button");
+            btn.className = "book" + (n ? " has" : "");
+            btn.innerHTML = '<span>' + name + '</span><small>' + chapters + '장</small>' + (n ? '<span class="n">' + n + '</span>' : '');
+            btn.addEventListener("click", () => { menuHintBook = abbr; renderMenuHint(); });
+            grid.appendChild(btn);
+          });
+          body.appendChild(grid);
+        });
+      } else {
+        $("menuHintTitle").textContent = bookInfo(menuHintBook)[1];
+        $("menuHintBack").style.visibility = "";
+        $("menuHintCount").textContent = "외운 구절 " + learnedCountIn(menuHintBook) + "개";
+        renderChapters(body, menuHintBook, 0);
+      }
+    }
+    $("menuHintBtn").addEventListener("click", toggleMenuHint);
+    $("menuHintBack").addEventListener("click", () => { menuHintBook = null; renderMenuHint(); });
     $("toggleHint").addEventListener("click", e => { e.stopPropagation(); toggleHint(); });
     // 힌트 영역을 터치해도 단어가 넘어가지 않게
     $("bookHint").addEventListener("click", e => e.stopPropagation());
