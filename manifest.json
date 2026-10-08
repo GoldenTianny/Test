@@ -1,0 +1,16 @@
+{
+  "name": "암송 카드",
+  "short_name": "암송 카드",
+  "description": "5확신부터 242구절·180구절·60구절 시리즈까지, 성경 암송 카드",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "ko",
+  "icons": [
+    { "src": "assets/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
