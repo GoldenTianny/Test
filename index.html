@@ -240,6 +240,25 @@
       cursor: pointer;
     }
     .kakao:active { background: #f2d900; }
+    .head-btns { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .install-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 42px; height: 42px; border: 1px solid #333; border-radius: 50%; background: #fff;
+      font-size: 16px; line-height: 1; cursor: pointer; font-family: inherit; color: #222; padding: 0;
+    }
+    .install-btn small { font-size: 9px; font-weight: 700; margin-top: 1px; }
+    .install-btn:active { background: #eee; }
+    .install-body { padding-bottom: 60px; }
+    .install-intro { font-size: 14px; color: #555; margin: 4px 0 16px; line-height: 1.6; }
+    .install-note { font-size: 13px; color: #777; margin-top: 20px; line-height: 1.6; }
+    .step { margin-bottom: 26px; }
+    .step-no {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%; background: #333; color: #fff;
+      font-size: 13px; font-weight: 700; margin-right: 6px; vertical-align: middle;
+    }
+    .step-text { display: inline; font-size: 15px; line-height: 1.6; }
+    .step img { display: block; width: 100%; max-width: 360px; margin: 10px auto 0; border: 1px solid #ccc; border-radius: 10px; }
     .share-msg { text-align: right; font-size: 12px; color: #777; min-height: 16px; margin-bottom: 4px; }
 
     /* 암송지갑 버튼 (첫 화면 최상단) */
@@ -424,9 +443,12 @@
         <div class="menu-title">SCRIPTURE MEMORY</div>
         <div class="menu-subtitle">암송할 묶음을 고르세요</div>
       </div>
+      <div class="head-btns">
+      <button class="install-btn" id="openInstall">📲<small>설치법</small></button>
       <button class="kakao" id="kakaoShare" aria-label="카카오톡으로 공유">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#191919" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7l-1 3.7c-.1.3.3.6.6.4l4.3-2.9c.5.1.9.1 1.4.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
       </button>
+      </div>
     </div>
     <div class="share-msg" id="shareMsg"></div>
     <div class="wallet-row">
@@ -447,6 +469,25 @@
         <span class="hint-count" id="menuHintCount"></span>
       </div>
       <div id="menuHintBody"></div>
+    </div>
+  </div>
+
+  <!-- 설치법 -->
+  <div class="screen" id="install">
+    <div class="screen-head">
+      <button class="home" id="installBack">목록</button>
+      <div class="screen-title">홈 화면에 설치하기</div>
+      <span class="screen-spacer"></span>
+    </div>
+    <div class="screen-body install-body">
+      <p class="install-intro">카카오톡에서 링크를 열었을 때, 홈 화면에 앱처럼 추가하는 방법이에요. (안드로이드 · 삼성 인터넷 기준)</p>
+      <div class="step"><div class="step-no">1</div><div class="step-text">카카오톡 안에서 열린 화면 오른쪽 아래 <b>⋮</b> 를 눌러요.</div><img src="assets/install/1.jpg" alt=""></div>
+      <div class="step"><div class="step-no">2</div><div class="step-text"><b>「다른 브라우저로 열기」</b>를 눌러요. 삼성 인터넷(또는 크롬)으로 열려요.</div><img src="assets/install/2.jpg" alt=""></div>
+      <div class="step"><div class="step-no">3</div><div class="step-text">주소창 오른쪽의 <b>⬇ 설치 아이콘</b>을 눌러요.</div><img src="assets/install/3.jpg" alt=""></div>
+      <div class="step"><div class="step-no">4</div><div class="step-text">"앱스 화면에 이 웹페이지를 추가할까요?"가 뜨면 <b>「추가」</b>를 눌러요.</div><img src="assets/install/4.jpg" alt=""></div>
+      <div class="step"><div class="step-no">5</div><div class="step-text">Google Play 프로텍트 경고가 뜨면 <b>「세부정보 더보기」</b>를 눌러요. (이 앱은 웹페이지 바로가기라서 휴대폰에 아무것도 설치되지 않아요. 안심하고 진행해도 돼요.)</div><img src="assets/install/5.jpg" alt=""></div>
+      <div id="installMore"></div>
+      <p class="install-note">설치 후에는 홈 화면의 「암송 카드」 아이콘으로 바로 열려요. 암송지갑·외움 표시는 그대로 유지되고, 업데이트도 자동이에요.</p>
     </div>
   </div>
 
@@ -543,7 +584,7 @@
     SETS.forEach((set, si) => set.verses.forEach((v, vi) => { v.id = si + ":" + vi; }));
 
     // ---------- 화면 전환 ----------
-    const SCREENS = ["menu", "wallet", "picker", "app"];
+    const SCREENS = ["menu", "install", "wallet", "picker", "app"];
     function show(id) {
       SCREENS.forEach(k => {
         const el = $(k);
@@ -573,6 +614,7 @@
             $("menuHintPanel").classList.remove("open"); $("menuHintBtn").classList.remove("on"); $("menuList").style.display = ""; }
           showMenu();
         }
+        else if (state.screen === "install") show("install");
         else if (state.screen === "wallet") openWallet();
         else if (state.screen === "picker") { pickSlot = state.slot; pickSet = state.set; renderPicker(); show("picker"); }
         else if (state.screen === "app") { if (deck) { show("app"); render(); } else showMenu(); }
@@ -1142,6 +1184,9 @@
     $("sheetBg").addEventListener("click", e => { if (e.target === $("sheetBg")) closeSheet(); });
 
     $("openWallet").addEventListener("click", openWallet);
+    function openInstall() { pushNav({ screen: "install" }); show("install"); $("install").querySelector(".screen-body").scrollTop = 0; }
+    $("openInstall").addEventListener("click", openInstall);
+    $("installBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("walletBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("pickerBack").addEventListener("click", goBack);
     $("pickerDone").addEventListener("click", openWallet);
