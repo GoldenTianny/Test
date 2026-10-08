@@ -230,6 +230,22 @@
     .menu-minor { font-size: 16px; font-weight: 700; }
     .menu-minor small { font-size: 12px; color: #666; font-weight: 400; }
     .menu-count { font-size: 12px; color: #777; white-space: nowrap; }
+    .menu-item .menu-arrow { display: inline-block; margin-left: 4px; }
+    .menu-item.open .menu-arrow { transform: rotate(180deg); }
+    .menu-item.open { background: #333; color: #fff; }
+    .menu-item.open .menu-count, .menu-item.open small { color: #ccc; }
+    .verse-list { display: none; flex-direction: column; border: 1px solid #333; border-top: none; margin-top: -8px; padding: 4px 0; }
+    .verse-list.open { display: flex; }
+    .verse-sub { font-size: 12px; color: #666; font-weight: 700; padding: 8px 12px 2px; }
+    .verse-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      background: none; border: none; border-bottom: 1px dashed #e0e0e0;
+      padding: 9px 12px; font-family: inherit; font-size: 14px; color: #222; text-align: left; cursor: pointer;
+    }
+    .verse-row:last-child { border-bottom: none; }
+    .verse-row:active { background: #eee; }
+    .verse-name { flex: 1; }
+    .verse-ref { font-weight: 700; white-space: nowrap; font-size: 13px; }
     .kakao {
       display: flex; align-items: center; justify-content: center;
       width: 42px; height: 42px;
@@ -1211,9 +1227,35 @@
         btn.className = "menu-item";
         btn.innerHTML = '<span class="menu-minor">' + set.minor +
                         (set.minorEn ? ' <small>(' + set.minorEn + ')</small>' : '') + '</span>' +
-                        '<span class="menu-count">' + set.verses.length + '구절</span>';
-        btn.addEventListener("click", () => openSet(i));
+                        '<span class="menu-count">' + set.verses.length + '구절 <span class="menu-arrow">▾</span></span>';
+        // 중제목을 누르면 그 아래로 소제목·장절 목록이 펼쳐져요
+        const vlist = document.createElement("div");
+        vlist.className = "verse-list";
+        let built = false;
+        btn.addEventListener("click", () => {
+          if (!built) {
+            built = true;
+            let lastSub = null;
+            set.verses.forEach((v, vi) => {
+              if (v.sub && v.sub !== lastSub) {
+                const h = document.createElement("div");
+                h.className = "verse-sub";
+                h.textContent = v.sub;
+                vlist.appendChild(h);
+                lastSub = v.sub;
+              }
+              const row = document.createElement("button");
+              row.className = "verse-row";
+              row.innerHTML = '<span class="verse-name">' + v.name + '</span><span class="verse-ref">' + v.ref + '</span>';
+              row.addEventListener("click", () => openSet(i, vi));
+              vlist.appendChild(row);
+            });
+          }
+          vlist.classList.toggle("open");
+          btn.classList.toggle("open", vlist.classList.contains("open"));
+        });
         list.appendChild(btn);
+        list.appendChild(vlist);
       });
       head.addEventListener("click", () => {
         list.classList.toggle("open");
