@@ -585,6 +585,22 @@
           crossorigin="anonymous"></script>
   <script src="data.js"></script>
   <script>
+    // ---------- 구글 애널리틱스 ----------
+    // 애널리틱스에서 받은 측정 ID(G-XXXXXXXXXX)를 넣으면 통계가 모이기 시작해요. 비워두면 아무것도 안 보내요.
+    const GA_ID = "";
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    if (GA_ID) {
+      const g = document.createElement("script");
+      g.async = true; g.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+      document.head.appendChild(g);
+      gtag("js", new Date());
+      gtag("config", GA_ID, { send_page_view: true });
+    }
+    // 화면 이동과 주요 동작을 이벤트로 보내요 (개인 정보는 없고, 어떤 구절·기능을 쓰는지만 세요)
+    function track(name, params) { if (GA_ID) gtag("event", name, params || {}); }
+  </script>
+  <script>
     // 카카오 개발자 사이트(developers.kakao.com)에서 받은 JavaScript 키를 넣으면
     // 카카오톡 전용 공유창이 열려요. 비워두면 휴대폰 기본 공유창을 사용해요.
     const KAKAO_JS_KEY = "";
@@ -602,6 +618,7 @@
     // ---------- 화면 전환 ----------
     const SCREENS = ["menu", "install", "wallet", "picker", "app"];
     function show(id) {
+      track("screen_view", { screen_name: id });
       SCREENS.forEach(k => {
         const el = $(k);
         if (k === "menu" || k === "app") el.style.display = (k === id) ? "flex" : "none";
@@ -645,6 +662,10 @@
     let shown = 0;          // 보여준 단어 수
     let titleShown = false; // 소제목(주제)을 보여줬는지
 
+    function trackVerse(v, how) {
+      const set = setById(v.id);
+      track("verse_view", { verse: v.ref, topic: v.name.replace(/^\d+\. /, ""), set: set.major, section: set.minor, how });
+    }
     function openDeck(d, start) {
       pushNav({ screen: "app" });
       deck = d;
@@ -654,6 +675,7 @@
       $("home").textContent = "목록";
       show("app");
       render();
+      trackVerse(deck.verses[index], d.from);
     }
     function openSet(i, start) {
       const set = SETS[i];
@@ -725,6 +747,7 @@
       shown = 0;
       titleShown = false;
       render();
+      trackVerse(deck.verses[index], "next");
     }
 
     // ---------- 암송지갑 (휴대폰 안에 저장, 가입 필요 없음) ----------
@@ -784,6 +807,7 @@
       removeFromWallet(id);
       sl.ids.push(id);
       saveWallet();
+      track("wallet_add", { slot: sl.name, verse: verseById(id).ref });
       return true;
     }
     function updateWalletSummary() {
@@ -915,7 +939,7 @@
 
     // 카드 화면 힌트: 지금 구절의 책만
     let hintOpen = false;
-    function toggleHint() { hintOpen = !hintOpen; renderHint(); }
+    function toggleHint() { hintOpen = !hintOpen; renderHint(); if (hintOpen) track("hint_open", { where: "card" }); }
     function renderHint() {
       $("toggleHint").classList.toggle("on", hintOpen);
       $("bookHint").classList.toggle("open", hintOpen);
@@ -935,7 +959,7 @@
       $("menuHintPanel").classList.toggle("open", menuHintOpen);
       $("menuHintBtn").classList.toggle("on", menuHintOpen);
       $("menuList").style.display = menuHintOpen ? "none" : "";
-      if (menuHintOpen) { menuHintBook = null; renderMenuHint(); }
+      if (menuHintOpen) { menuHintBook = null; renderMenuHint(); track("hint_open", { where: "menu" }); }
     }
     function renderMenuHint() {
       const body = $("menuHintBody");
@@ -1268,13 +1292,17 @@
     });
 
     $("card").addEventListener("click", showNextWord);
-    $("revealAll").addEventListener("click", () => { titleShown = true; shown = words(deck.verses[index]).length; render(); });
+    $("revealAll").addEventListener("click", () => { titleShown = true; shown = words(deck.verses[index]).length; render(); track("reveal_all", { verse: deck.verses[index].ref }); });
     $("prev").addEventListener("click", () => go(-1));
     $("next").addEventListener("click", () => go(1));
     $("home").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("back").addEventListener("click", goBack);
     $("goWallet").addEventListener("click", openWallet);
-    $("learnedBtn").addEventListener("click", () => { toggleLearned(deck.verses[index].id); render(); });
+    $("learnedBtn").addEventListener("click", () => {
+      const v = deck.verses[index];
+      toggleLearned(v.id); render();
+      track(learned.has(v.id) ? "mark_learned" : "unmark_learned", { verse: v.ref });
+    });
 
     // 좌우 스와이프로도 이동 (힌트 영역 안에서 시작한 터치나, 위아래로 스크롤한 경우는 제외)
     let touchX = null, touchY = null;
@@ -1299,6 +1327,7 @@
     }
 
     async function share() {
+      track("share");
       if (KAKAO_JS_KEY && window.Kakao) {
         if (!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
         Kakao.Share.sendDefault({
