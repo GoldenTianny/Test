@@ -256,6 +256,12 @@
       cursor: pointer;
     }
     .kakao:active { background: #f2d900; }
+    .game-btn {
+      display: block; width: 100%; margin-top: 24px; padding: 14px;
+      background: #fff; border: 2px solid #333; color: #222;
+      font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .game-btn:active { background: #eee; }
     .head-btns { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .install-btn {
       height: 34px; padding: 0 10px; border: 1px solid #333; border-radius: 17px; background: #fff;
@@ -475,6 +481,7 @@
       <button class="hint-btn" id="menuHintBtn"><span>💡</span><b>힌트</b></button>
     </div>
     <div class="menu-list" id="menuList"></div>
+    <button class="game-btn" id="openGame">🎮 게임</button>
 
     <!-- 힌트: 성경 66권 › 장별로 내가 외운 구절 보기 -->
     <div class="hint-panel" id="menuHintPanel">
@@ -485,6 +492,16 @@
       </div>
       <div id="menuHintBody"></div>
     </div>
+  </div>
+
+  <!-- 게임 (준비 중) -->
+  <div class="screen" id="game">
+    <div class="screen-head">
+      <button class="home" id="gameBack">목록</button>
+      <div class="screen-title">게임</div>
+      <span class="screen-spacer"></span>
+    </div>
+    <div class="screen-body" id="gameBody"></div>
   </div>
 
   <!-- 설치법 -->
@@ -616,7 +633,7 @@
     SETS.forEach((set, si) => set.verses.forEach((v, vi) => { v.id = si + ":" + vi; }));
 
     // ---------- 화면 전환 ----------
-    const SCREENS = ["menu", "install", "wallet", "picker", "app"];
+    const SCREENS = ["menu", "install", "game", "wallet", "picker", "app"];
     function show(id) {
       track("screen_view", { screen_name: id });
       SCREENS.forEach(k => {
@@ -648,6 +665,7 @@
           showMenu();
         }
         else if (state.screen === "install") show("install");
+        else if (state.screen === "game") show("game");
         else if (state.screen === "wallet") openWallet();
         else if (state.screen === "picker") { pickSlot = state.slot; pickSet = state.set; renderPicker(); show("picker"); }
         else if (state.screen === "app") { if (deck) { show("app"); render(); } else showMenu(); }
@@ -959,6 +977,7 @@
       $("menuHintPanel").classList.toggle("open", menuHintOpen);
       $("menuHintBtn").classList.toggle("on", menuHintOpen);
       $("menuList").style.display = menuHintOpen ? "none" : "";
+      $("openGame").style.display = menuHintOpen ? "none" : "";
       if (menuHintOpen) { menuHintBook = null; renderMenuHint(); track("hint_open", { where: "menu" }); }
     }
     function renderMenuHint() {
@@ -1226,6 +1245,8 @@
     $("openWallet").addEventListener("click", openWallet);
     function openInstall() { pushNav({ screen: "install" }); show("install"); $("install").querySelector(".screen-body").scrollTop = 0; }
     $("openInstall").addEventListener("click", openInstall);
+    $("openGame").addEventListener("click", () => { pushNav({ screen: "game" }); show("game"); });
+    $("gameBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("installBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("walletBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("pickerBack").addEventListener("click", goBack);
