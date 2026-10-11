@@ -718,7 +718,7 @@
       const linked = deck.setIndex !== undefined;
       $("prev").disabled = index === 0 && !(linked && deck.setIndex > 0);
       $("next").disabled = index === deck.verses.length - 1 && !(linked && deck.setIndex < SETS.length - 1);
-      $("revealAll").disabled = shown >= words(v).length;
+      $("revealAll").textContent = (titleShown && shown >= words(v).length) ? "다시 가리기" : "모두 확인";
     }
 
     function showNextWord() {
@@ -1292,7 +1292,13 @@
     });
 
     $("card").addEventListener("click", showNextWord);
-    $("revealAll").addEventListener("click", () => { titleShown = true; shown = words(deck.verses[index]).length; render(); track("reveal_all", { verse: deck.verses[index].ref }); });
+    $("revealAll").addEventListener("click", () => {
+      const v = deck.verses[index];
+      const allShown = titleShown && shown >= words(v).length;
+      if (allShown) { titleShown = false; shown = 0; }          // 다 보인 상태에서 또 누르면 처음으로
+      else { titleShown = true; shown = words(v).length; track("reveal_all", { verse: v.ref }); }
+      render();
+    });
     $("prev").addEventListener("click", () => go(-1));
     $("next").addEventListener("click", () => go(1));
     $("home").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
