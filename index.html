@@ -291,7 +291,7 @@
       display: flex; justify-content: space-between; align-items: baseline;
       background: #e6e6e6; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 8px 10px;
     }
-    .g-q-head .t { font-weight: 700; font-size: 15px; }
+    .g-q-head .t { font-weight: 700; font-size: 15px; margin: 0; padding: 0; }
     .g-q-head .r { font-weight: 700; font-size: 14px; }
     .g-q-from { font-size: 12px; color: #888; margin: 6px 2px 0; }
     .g-cho { font-size: 19px; line-height: 2.1; padding: 14px 2px; word-break: keep-all; }
@@ -1367,12 +1367,20 @@
       body.innerHTML =
         '<div class="g-top"><span>' + (game.i + 1) + ' / ' + game.pool.length + '</span>' +
         '<span><b>○ ' + game.ok + '</b> &nbsp; <span class="x">✕ ' + game.no + '</span></span></div>' +
-        '<div class="g-q-head"><span class="t">' + v.name.replace(/^\d+\. /, "") + '</span><span class="r">' + v.ref + '</span></div>' +
+        '<div class="g-q-head"><span class="t g-w" id="gTitle"></span><span class="r">' + v.ref + '</span></div>' +
         '<div class="g-q-from">' + set.major + ' › ' + set.minor + '</div>' +
         '<div class="g-cho" id="gCho"></div>' +
         '<div class="g-tip">초성을 보고 소리 내어 외워 보세요. 막히는 단어는 눌러서 확인해요.</div>' +
         '<div class="g-actions"><button id="gReveal">정답 보기</button></div>' +
         '<div class="g-actions" style="margin-top:8px"><button class="no" id="gNo">✕ 막혔어요</button><button class="ok" id="gOk">○ 다 외웠어요</button></div>';
+      // 소제목도 초성으로 (누르면 펼치기/접기)
+      const title = v.name.replace(/^\d+\. /, "");
+      const tEl = $("gTitle");
+      tEl.textContent = toChosung(title);
+      tEl.addEventListener("click", () => {
+        const open = tEl.classList.toggle("open");
+        tEl.textContent = open ? title : toChosung(title);
+      });
       const cho = $("gCho");
       ws.forEach((w, k) => {
         const sp = document.createElement("span");
@@ -1389,6 +1397,7 @@
         const all = [...cho.children];
         const anyClosed = all.some(x => !x.classList.contains("open"));
         all.forEach((sp, k) => { sp.classList.toggle("open", anyClosed); sp.textContent = anyClosed ? ws[k] : toChosung(ws[k]); });
+        tEl.classList.toggle("open", anyClosed); tEl.textContent = anyClosed ? title : toChosung(title);
         $("gReveal").textContent = anyClosed ? "다시 초성으로" : "정답 보기";
       });
       $("gOk").addEventListener("click", () => answer(true));
