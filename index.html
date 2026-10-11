@@ -313,6 +313,22 @@
     .g-result { text-align: center; padding: 30px 0 10px; }
     .g-result .big { font-size: 46px; font-weight: 700; }
     .g-result .msg { font-size: 15px; color: #555; margin-top: 6px; }
+    .b-ans {
+      min-height: 120px; margin: 12px 0 6px; padding: 10px; border: 2px dashed #999; border-radius: 8px;
+      display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; background: #fafafa;
+    }
+    .b-empty { color: #bbb; font-size: 13px; margin: auto; }
+    .b-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 6px 0; min-height: 40px; }
+    .blk {
+      display: inline-block; padding: 8px 11px; border: 1px solid #333; border-radius: 6px; background: #fff;
+      font-size: 16px; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
+      box-shadow: 0 2px 0 #333;
+    }
+    .b-ans .blk { box-shadow: none; padding: 6px 9px; }
+    .blk.lifting { opacity: .25; }
+    .blk.ghost { position: fixed; z-index: 50; pointer-events: none; background: #fffbe6; box-shadow: 0 6px 16px rgba(0,0,0,.25); transform: scale(1.08); }
+    .blk.bad { border-color: #d33; background: #ffecec; color: #d33; }
+    .blk.good { border-color: #2a7; background: #e9f8f1; color: #1a6; }
     .g-miss { margin-top: 20px; }
     .g-miss .row { display: flex; justify-content: space-between; gap: 8px; padding: 9px 2px; border-bottom: 1px dashed #ddd; font-size: 14px; cursor: pointer; }
     .g-miss .row b { white-space: nowrap; }
@@ -719,7 +735,7 @@
           showMenu();
         }
         else if (state.screen === "install") show("install");
-        else if (state.screen === "game") { if (state.g === "cho") renderChoRange(); else renderGameHome(); show("game"); }
+        else if (state.screen === "game") { if (state.g) renderRange(state.g); else renderGameHome(); show("game"); }
         else if (state.screen === "wallet") openWallet();
         else if (state.screen === "picker") { pickSlot = state.slot; pickSet = state.set; renderPicker(); show("picker"); }
         else if (state.screen === "app") { if (deck) { show("app"); render(); } else showMenu(); }
@@ -1322,6 +1338,10 @@
       return opts;
     }
 
+    const GAMES = {
+      cho:   { title: "초성 게임",   ico: "ㅊㅅ", desc: "구절이 초성으로만 보여요. 떠올려 보고, 막히면 단어를 눌러 확인해요." },
+      block: { title: "블록 맞추기", ico: "🧩", desc: "흩어진 말씀 블록을 끌어다 순서대로 놓아 구절을 완성해요." }
+    };
     function renderGameHome() {
       game = null;
       $("gameTitle").textContent = "게임";
@@ -1329,16 +1349,18 @@
       body.innerHTML = "";
       const list = document.createElement("div");
       list.className = "g-list";
-      const c = document.createElement("button");
-      c.className = "g-card";
-      c.innerHTML = '<span class="g-ico">ㅊㅅ</span><span><b>1. 초성 게임</b><small>구절이 초성으로만 보여요. 떠올려 보고, 막히면 단어를 눌러 확인해요.</small></span>';
-      c.addEventListener("click", () => { pushNav({ screen: "game", g: "cho" }); renderChoRange(); });
-      list.appendChild(c);
+      Object.entries(GAMES).forEach(([kind, g], n) => {
+        const c = document.createElement("button");
+        c.className = "g-card";
+        c.innerHTML = '<span class="g-ico">' + g.ico + '</span><span><b>' + (n + 1) + '. ' + g.title + '</b><small>' + g.desc + '</small></span>';
+        c.addEventListener("click", () => { pushNav({ screen: "game", g: kind }); renderRange(kind); });
+        list.appendChild(c);
+      });
       body.appendChild(list);
     }
 
-    function renderChoRange() {
-      $("gameTitle").textContent = "초성 게임";
+    function renderRange(kind) {
+      $("gameTitle").textContent = GAMES[kind].title;
       const body = $("gameBody");
       body.innerHTML = '<div class="g-sec">어떤 구절로 할까요? (한 판 ' + ROUND + '문제)</div>';
       const box = document.createElement("div");
@@ -1347,17 +1369,18 @@
         const b = document.createElement("button");
         b.innerHTML = '<span>' + o.label + '</span><small>' + o.list.length + '구절</small>';
         b.disabled = o.list.length === 0;
-        b.addEventListener("click", () => startCho(o.list));
+        b.addEventListener("click", () => startGame(kind, o.list));
         box.appendChild(b);
       });
       body.appendChild(box);
     }
 
-    function startCho(list) {
-      game = { pool: shuffle([...list]).slice(0, ROUND), i: 0, ok: 0, no: 0, missed: [], opened: new Set() };
-      track("game_start", { game: "chosung", count: game.pool.length });
-      renderChoQ();
+    function startGame(kind, list) {
+      game = { kind, pool: shuffle([...list]).slice(0, ROUND), i: 0, ok: 0, no: 0, missed: [], opened: new Set() };
+      track("game_start", { game: kind, count: game.pool.length });
+      renderQ();
     }
+    const renderQ = () => game.kind === "block" ? renderBlockQ() : renderChoQ();
 
     function renderChoQ() {
       const v = game.pool[game.i];
@@ -1408,11 +1431,11 @@
       const v = game.pool[game.i];
       if (ok) game.ok++; else { game.no++; game.missed.push(v); }
       game.i++;
-      if (game.i < game.pool.length) renderChoQ(); else renderChoResult();
+      if (game.i < game.pool.length) renderQ(); else renderResult();
     }
 
-    function renderChoResult() {
-      track("game_end", { game: "chosung", ok: game.ok, total: game.pool.length });
+    function renderResult() {
+      track("game_end", { game: game.kind, ok: game.ok, total: game.pool.length });
       const total = game.pool.length, pct = Math.round(game.ok / total * 100);
       const msg = pct === 100 ? "완벽해요! 🎉" : pct >= 70 ? "잘했어요! 조금만 더 👍" : "막힌 구절을 지갑에 넣고 다시 도전해요 💪";
       const body = $("gameBody");
@@ -1432,10 +1455,129 @@
         });
         body.appendChild(m);
       }
-      const last = game.pool;
-      $("gAgain").addEventListener("click", () => startCho(last));
-      $("gRange").addEventListener("click", renderChoRange);
+      const last = game.pool, kind = game.kind;
+      $("gAgain").addEventListener("click", () => startGame(kind, last));
+      $("gRange").addEventListener("click", () => renderRange(kind));
     }
+
+
+    // ---------- 블록 맞추기 ----------
+    function renderBlockQ() {
+      const v = game.pool[game.i];
+      const set = setById(v.id);
+      const ws = words(v);
+      game.tries = 0;
+      const body = $("gameBody");
+      body.innerHTML =
+        '<div class="g-top"><span>' + (game.i + 1) + ' / ' + game.pool.length + '</span>' +
+        '<span><b>○ ' + game.ok + '</b> &nbsp; <span class="x">✕ ' + game.no + '</span></span></div>' +
+        '<div class="g-q-head"><span class="t">' + v.name.replace(/^\d+\. /, "") + '</span><span class="r">' + v.ref + '</span></div>' +
+        '<div class="g-q-from">' + set.major + ' › ' + set.minor + '</div>' +
+        '<div class="b-ans" id="bAns"><span class="b-empty">여기에 블록을 순서대로 놓아요</span></div>' +
+        '<div class="g-tip" id="bMsg">블록을 끌어서 위 칸에 놓거나, 눌러서 옮겨요.</div>' +
+        '<div class="b-pool" id="bPool"></div>' +
+        '<div class="g-actions" style="margin-top:14px"><button id="bReset">처음부터</button><button id="bGiveup">정답 보기</button></div>';
+      const pool = $("bPool");
+      shuffle(ws.map((w, k) => ({ w, k }))).forEach(({ w, k }) => {
+        const b = document.createElement("span");
+        b.className = "blk";
+        b.textContent = w;
+        b.dataset.w = w;
+        pool.appendChild(b);
+      });
+      $("bReset").addEventListener("click", () => {
+        shuffle([...$("bAns").querySelectorAll(".blk")]).forEach(b => { b.classList.remove("bad", "good"); pool.appendChild(b); });
+        updateBlockState(ws);
+      });
+      $("bGiveup").addEventListener("click", () => {
+        const ans = $("bAns");
+        ans.innerHTML = "";
+        ws.forEach(w => { const b = document.createElement("span"); b.className = "blk good"; b.textContent = w; ans.appendChild(b); });
+        pool.innerHTML = "";
+        finishBlock(false);
+      });
+      updateBlockState(ws);
+    }
+
+    function updateBlockState(ws) {
+      const ans = $("bAns"), pool = $("bPool");
+      if (!ans) return;
+      const placed = [...ans.querySelectorAll(".blk")];
+      ans.querySelector(".b-empty")?.remove();
+      if (!placed.length) ans.insertAdjacentHTML("afterbegin", '<span class="b-empty">여기에 블록을 순서대로 놓아요</span>');
+      placed.forEach(b => b.classList.remove("bad"));
+      if (pool.querySelectorAll(".blk").length) return;
+      // 다 놓았으면 채점
+      const wrong = placed.map((b, k) => b.dataset.w !== ws[k]);
+      if (!wrong.some(Boolean)) { placed.forEach(b => b.classList.add("good")); finishBlock(game.tries === 0); return; }
+      game.tries++;
+      placed.forEach((b, k) => b.classList.toggle("bad", wrong[k]));
+      $("bMsg").textContent = "빨간 블록의 자리를 고쳐 보세요. (끌어서 옮기거나, 눌러서 아래로 빼요)";
+    }
+
+    function finishBlock(clean) {
+      $("bMsg").textContent = clean ? "완벽해요! 🎉" : "완성! 다음엔 한 번에 맞춰 봐요.";
+      const acts = $("bReset").parentNode;
+      acts.innerHTML = '<button class="ok" id="bNext">다음 ▶</button>';
+      $("bNext").addEventListener("click", () => answer(clean));
+    }
+
+    // 블록 끌기 (손가락·마우스 공통)
+    const bd = { el: null, ghost: null, sx: 0, sy: 0, moved: false };
+    function blkDown(e) {
+      const el = e.target.closest(".blk");
+      if (!el || !el.closest("#bAns, #bPool") || !$("bPool")) return;
+      if ($("bNext")) return;   // 끝난 문제는 고정
+      bd.el = el; bd.sx = e.clientX; bd.sy = e.clientY; bd.moved = false;
+      e.preventDefault();
+    }
+    function blkMove(e) {
+      if (!bd.el) return;
+      if (!bd.moved) {
+        if (Math.hypot(e.clientX - bd.sx, e.clientY - bd.sy) < 6) return;
+        bd.moved = true;
+        const r = bd.el.getBoundingClientRect();
+        bd.ghost = bd.el.cloneNode(true);
+        bd.ghost.classList.add("ghost");
+        bd.ghost.style.width = r.width + "px";
+        document.body.appendChild(bd.ghost);
+        bd.el.classList.add("lifting");
+      }
+      e.preventDefault();
+      bd.ghost.style.left = (e.clientX - bd.ghost.offsetWidth / 2) + "px";
+      bd.ghost.style.top = (e.clientY - bd.ghost.offsetHeight / 2 - 24) + "px";
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      if (!under) return;
+      const box = under.closest("#bAns, #bPool");
+      if (!box) return;
+      const over = under.closest(".blk");
+      if (over && over !== bd.el && box.contains(over)) {
+        const r = over.getBoundingClientRect();
+        over.parentNode.insertBefore(bd.el, e.clientX < r.left + r.width / 2 ? over : over.nextSibling);
+      } else if (!over) {
+        // 블록이 없는 곳: 그 줄에서 가장 가까운 자리 뒤에 놓기
+        const items = [...box.querySelectorAll(".blk")].filter(x => x !== bd.el);
+        let after = null;
+        items.forEach(x => { const r = x.getBoundingClientRect(); if (r.top <= e.clientY && (r.bottom >= e.clientY ? r.left < e.clientX : true)) after = x; });
+        if (after) after.after(bd.el); else box.prepend(bd.el);
+      }
+    }
+    function blkUp() {
+      if (!bd.el) return;
+      const el = bd.el;
+      if (!bd.moved) {
+        // 탭: 아래 ↔ 위 칸으로 옮기기
+        (el.closest("#bPool") ? $("bAns") : $("bPool")).appendChild(el);
+      }
+      el.classList.remove("lifting");
+      bd.ghost?.remove();
+      bd.el = null; bd.ghost = null;
+      updateBlockState(words(game.pool[game.i]));
+    }
+    $("gameBody").addEventListener("pointerdown", blkDown);
+    document.addEventListener("pointermove", blkMove, { passive: false });
+    document.addEventListener("pointerup", blkUp);
+    document.addEventListener("pointercancel", blkUp);
 
     function openGame() { pushNav({ screen: "game" }); renderGameHome(); show("game"); }
     $("openGame").addEventListener("click", openGame);
