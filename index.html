@@ -262,6 +262,60 @@
       font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
     }
     .game-btn:active { background: #eee; }
+
+    /* 게임 */
+    .g-list { display: flex; flex-direction: column; gap: 10px; }
+    .g-card {
+      display: flex; align-items: center; gap: 14px; width: 100%;
+      background: #fff; border: 2px solid #333; padding: 14px; text-align: left;
+      font-family: inherit; color: #222; cursor: pointer;
+    }
+    .g-card:active { background: #eee; }
+    .g-card .g-ico { font-size: 28px; font-weight: 700; width: 44px; text-align: center; }
+    .g-card b { display: block; font-size: 17px; }
+    .g-card small { font-size: 12px; color: #777; }
+    .g-sec { font-size: 13px; font-weight: 700; color: #555; margin: 18px 2px 8px; }
+    .g-range { display: flex; flex-direction: column; gap: 8px; }
+    .g-range button {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #fff; border: 1px solid #333; padding: 12px 14px;
+      font-family: inherit; font-size: 15px; color: #222; cursor: pointer; text-align: left;
+    }
+    .g-range button small { color: #777; font-size: 12px; }
+    .g-range button:disabled { opacity: .35; cursor: default; }
+    .g-range button:active { background: #eee; }
+    .g-top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #555; margin-bottom: 10px; }
+    .g-top b { color: #2a7; }
+    .g-top .x { color: #d33; }
+    .g-q-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      background: #e6e6e6; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 8px 10px;
+    }
+    .g-q-head .t { font-weight: 700; font-size: 15px; }
+    .g-q-head .r { font-weight: 700; font-size: 14px; }
+    .g-q-from { font-size: 12px; color: #888; margin: 6px 2px 0; }
+    .g-cho { font-size: 19px; line-height: 2.1; padding: 14px 2px; word-break: keep-all; }
+    .g-w {
+      display: inline-block; margin-right: .45em; padding: 0 3px; border-radius: 4px;
+      cursor: pointer; letter-spacing: 1px; color: #333;
+    }
+    .g-w:active { background: #eee; }
+    .g-w.open { color: #2a7; letter-spacing: 0; }
+    .g-tip { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 12px; }
+    .g-actions { display: flex; gap: 8px; }
+    .g-actions button {
+      flex: 1; padding: 13px 6px; border: 1px solid #333; background: #fff; color: #222;
+      font-family: inherit; font-size: 15px; font-weight: 700; border-radius: 6px; cursor: pointer;
+    }
+    .g-actions .ok { background: #2a7; border-color: #2a7; color: #fff; }
+    .g-actions .no { background: #fff; border-color: #d33; color: #d33; }
+    .g-actions button:active { opacity: .8; }
+    .g-result { text-align: center; padding: 30px 0 10px; }
+    .g-result .big { font-size: 46px; font-weight: 700; }
+    .g-result .msg { font-size: 15px; color: #555; margin-top: 6px; }
+    .g-miss { margin-top: 20px; }
+    .g-miss .row { display: flex; justify-content: space-between; gap: 8px; padding: 9px 2px; border-bottom: 1px dashed #ddd; font-size: 14px; cursor: pointer; }
+    .g-miss .row b { white-space: nowrap; }
     .head-btns { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .install-btn {
       height: 34px; padding: 0 10px; border: 1px solid #333; border-radius: 17px; background: #fff;
@@ -498,7 +552,7 @@
   <div class="screen" id="game">
     <div class="screen-head">
       <button class="home" id="gameBack">목록</button>
-      <div class="screen-title">게임</div>
+      <div class="screen-title" id="gameTitle">게임</div>
       <span class="screen-spacer"></span>
     </div>
     <div class="screen-body" id="gameBody"></div>
@@ -665,7 +719,7 @@
           showMenu();
         }
         else if (state.screen === "install") show("install");
-        else if (state.screen === "game") show("game");
+        else if (state.screen === "game") { if (state.g === "cho") renderChoRange(); else renderGameHome(); show("game"); }
         else if (state.screen === "wallet") openWallet();
         else if (state.screen === "picker") { pickSlot = state.slot; pickSet = state.set; renderPicker(); show("picker"); }
         else if (state.screen === "app") { if (deck) { show("app"); render(); } else showMenu(); }
@@ -1245,7 +1299,137 @@
     $("openWallet").addEventListener("click", openWallet);
     function openInstall() { pushNav({ screen: "install" }); show("install"); $("install").querySelector(".screen-body").scrollTop = 0; }
     $("openInstall").addEventListener("click", openInstall);
-    $("openGame").addEventListener("click", () => { pushNav({ screen: "game" }); show("game"); });
+    // ---------- 게임 ----------
+    const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+    const toChosung = w => [...w].map(ch => {
+      const c = ch.charCodeAt(0);
+      return (c >= 0xAC00 && c <= 0xD7A3) ? CHO[Math.floor((c - 0xAC00) / 588)] : ch;
+    }).join("");
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const ROUND = 10;
+    let game = null;   // { pool, i, ok, no, missed, opened:Set }
+
+    function allVerses() { return SETS.flatMap(set => set.verses); }
+    function rangeOptions() {
+      const walletIds = wallet.slots.flatMap(sl => sl.ids);
+      const opts = [
+        { key: "wallet", label: "👛 암송지갑 구절", list: walletIds.map(verseById) },
+        { key: "learned", label: "✓ 외움 표시한 구절", list: [...learned].map(verseById).filter(Boolean) },
+      ];
+      const majors = [...new Set(SETS.map(x => x.major))];
+      majors.forEach(m => opts.push({ key: "m:" + m, label: m, list: SETS.filter(x => x.major === m).flatMap(x => x.verses) }));
+      opts.push({ key: "all", label: "전체 (795구절 중 랜덤)", list: allVerses() });
+      return opts;
+    }
+
+    function renderGameHome() {
+      game = null;
+      $("gameTitle").textContent = "게임";
+      const body = $("gameBody");
+      body.innerHTML = "";
+      const list = document.createElement("div");
+      list.className = "g-list";
+      const c = document.createElement("button");
+      c.className = "g-card";
+      c.innerHTML = '<span class="g-ico">ㅊㅅ</span><span><b>1. 초성 게임</b><small>구절이 초성으로만 보여요. 떠올려 보고, 막히면 단어를 눌러 확인해요.</small></span>';
+      c.addEventListener("click", () => { pushNav({ screen: "game", g: "cho" }); renderChoRange(); });
+      list.appendChild(c);
+      body.appendChild(list);
+    }
+
+    function renderChoRange() {
+      $("gameTitle").textContent = "초성 게임";
+      const body = $("gameBody");
+      body.innerHTML = '<div class="g-sec">어떤 구절로 할까요? (한 판 ' + ROUND + '문제)</div>';
+      const box = document.createElement("div");
+      box.className = "g-range";
+      rangeOptions().forEach(o => {
+        const b = document.createElement("button");
+        b.innerHTML = '<span>' + o.label + '</span><small>' + o.list.length + '구절</small>';
+        b.disabled = o.list.length === 0;
+        b.addEventListener("click", () => startCho(o.list));
+        box.appendChild(b);
+      });
+      body.appendChild(box);
+    }
+
+    function startCho(list) {
+      game = { pool: shuffle([...list]).slice(0, ROUND), i: 0, ok: 0, no: 0, missed: [], opened: new Set() };
+      track("game_start", { game: "chosung", count: game.pool.length });
+      renderChoQ();
+    }
+
+    function renderChoQ() {
+      const v = game.pool[game.i];
+      const set = setById(v.id);
+      const ws = words(v);
+      const body = $("gameBody");
+      body.innerHTML =
+        '<div class="g-top"><span>' + (game.i + 1) + ' / ' + game.pool.length + '</span>' +
+        '<span><b>○ ' + game.ok + '</b> &nbsp; <span class="x">✕ ' + game.no + '</span></span></div>' +
+        '<div class="g-q-head"><span class="t">' + v.name.replace(/^\d+\. /, "") + '</span><span class="r">' + v.ref + '</span></div>' +
+        '<div class="g-q-from">' + set.major + ' › ' + set.minor + '</div>' +
+        '<div class="g-cho" id="gCho"></div>' +
+        '<div class="g-tip">초성을 보고 소리 내어 외워 보세요. 막히는 단어는 눌러서 확인해요.</div>' +
+        '<div class="g-actions"><button id="gReveal">정답 보기</button></div>' +
+        '<div class="g-actions" style="margin-top:8px"><button class="no" id="gNo">✕ 막혔어요</button><button class="ok" id="gOk">○ 다 외웠어요</button></div>';
+      const cho = $("gCho");
+      ws.forEach((w, k) => {
+        const sp = document.createElement("span");
+        sp.className = "g-w";
+        sp.textContent = toChosung(w);
+        sp.addEventListener("click", () => {
+          const open = sp.classList.toggle("open");
+          sp.textContent = open ? w : toChosung(w);
+          if (open) game.opened.add(k);
+        });
+        cho.appendChild(sp);
+      });
+      $("gReveal").addEventListener("click", () => {
+        const all = [...cho.children];
+        const anyClosed = all.some(x => !x.classList.contains("open"));
+        all.forEach((sp, k) => { sp.classList.toggle("open", anyClosed); sp.textContent = anyClosed ? ws[k] : toChosung(ws[k]); });
+        $("gReveal").textContent = anyClosed ? "다시 초성으로" : "정답 보기";
+      });
+      $("gOk").addEventListener("click", () => answer(true));
+      $("gNo").addEventListener("click", () => answer(false));
+    }
+
+    function answer(ok) {
+      const v = game.pool[game.i];
+      if (ok) game.ok++; else { game.no++; game.missed.push(v); }
+      game.i++;
+      if (game.i < game.pool.length) renderChoQ(); else renderChoResult();
+    }
+
+    function renderChoResult() {
+      track("game_end", { game: "chosung", ok: game.ok, total: game.pool.length });
+      const total = game.pool.length, pct = Math.round(game.ok / total * 100);
+      const msg = pct === 100 ? "완벽해요! 🎉" : pct >= 70 ? "잘했어요! 조금만 더 👍" : "막힌 구절을 지갑에 넣고 다시 도전해요 💪";
+      const body = $("gameBody");
+      body.innerHTML =
+        '<div class="g-result"><div class="big">' + game.ok + ' / ' + total + '</div><div class="msg">' + msg + '</div></div>' +
+        '<div class="g-actions"><button id="gAgain">다시 하기</button><button id="gRange">범위 바꾸기</button></div>';
+      if (game.missed.length) {
+        const m = document.createElement("div");
+        m.className = "g-miss";
+        m.innerHTML = '<div class="g-sec">막힌 구절 (눌러서 카드로 보기)</div>';
+        game.missed.forEach(v => {
+          const r = document.createElement("div");
+          r.className = "row";
+          r.innerHTML = '<span>' + v.name.replace(/^\d+\. /, "") + '</span><b>' + v.ref + '</b>';
+          r.addEventListener("click", () => { const [si, vi] = v.id.split(":").map(Number); openSet(si, vi); });
+          m.appendChild(r);
+        });
+        body.appendChild(m);
+      }
+      const last = game.pool;
+      $("gAgain").addEventListener("click", () => startCho(last));
+      $("gRange").addEventListener("click", renderChoRange);
+    }
+
+    function openGame() { pushNav({ screen: "game" }); renderGameHome(); show("game"); }
+    $("openGame").addEventListener("click", openGame);
     $("gameBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("installBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
     $("walletBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
