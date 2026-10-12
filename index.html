@@ -314,11 +314,13 @@
     .g-result .big { font-size: 46px; font-weight: 700; }
     .g-result .msg { font-size: 15px; color: #555; margin-top: 6px; }
     .b-ans {
-      min-height: 120px; margin: 12px 0 6px; padding: 10px; border: 2px dashed #999; border-radius: 8px;
+      height: 30vh; min-height: 120px; overflow-y: auto; margin: 12px 0 6px; padding: 10px; border: 2px dashed #999; border-radius: 8px;
       display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; background: #fafafa;
     }
     .b-empty { color: #bbb; font-size: 13px; margin: auto; }
     .b-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 6px 0; min-height: 40px; }
+    .b-slot { display: inline-block; border-radius: 6px; }
+    .b-slot:empty { background: #f2f2f2; outline: 1px dashed #ddd; }
     .blk {
       display: inline-block; padding: 8px 11px; border: 1px solid #333; border-radius: 6px; background: #fff;
       font-size: 16px; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
@@ -330,7 +332,7 @@
     .blk.bad { border-color: #d33; background: #ffecec; color: #d33; }
     .blk.good { border-color: #2a7; background: #e9f8f1; color: #1a6; }
     .t-board {
-      min-height: 110px; max-height: 38vh; overflow-y: auto; margin: 12px 0 6px; padding: 10px;
+      height: 30vh; min-height: 110px; overflow-y: auto; margin: 12px 0 6px; padding: 10px;
       border: 2px solid #333; border-radius: 8px; background: #fafafa;
       display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
     }
@@ -344,7 +346,7 @@
     .blk.gone { transform: scale(1.5); opacity: 0; pointer-events: none; }
     .blk.shake { animation: shake .4s; border-color: #d33; color: #d33; }
     @keyframes shake { 0%,100% { transform: none; } 20% { transform: translateX(-7px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
-    .t-status { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #555; margin-bottom: 8px; }
+    .t-status { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #555; margin-bottom: 8px; height: 22px; }
     .t-combo { font-weight: 700; color: #fb5607; font-size: 15px; }
     .t-combo.bump { animation: bump .3s; }
     @keyframes bump { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
@@ -1501,15 +1503,24 @@
         '<div class="b-pool" id="bPool"></div>' +
         '<div class="g-actions" style="margin-top:14px"><button id="bReset">처음부터</button><button id="bGiveup">정답 보기</button></div>';
       const pool = $("bPool");
-      shuffle(ws.map((w, k) => ({ w, k }))).forEach(({ w, k }) => {
+      // 블록마다 아래 칸에 고정 자리(slot)를 만들어요. 블록이 빠져도 자리는 남아서 다른 블록이 움직이지 않아요.
+      shuffle(ws.map((w, k) => ({ w, k }))).forEach(({ w }, n) => {
+        const slot = document.createElement("span");
+        slot.className = "b-slot";
         const b = document.createElement("span");
         b.className = "blk";
         b.textContent = w;
         b.dataset.w = w;
-        pool.appendChild(b);
+        b.dataset.slot = n;
+        slot.appendChild(b);
+        pool.appendChild(slot);
+      });
+      [...pool.children].forEach(slot => {
+        const r = slot.getBoundingClientRect();
+        slot.style.width = r.width + "px"; slot.style.height = r.height + "px";
       });
       $("bReset").addEventListener("click", () => {
-        shuffle([...$("bAns").querySelectorAll(".blk")]).forEach(b => { b.classList.remove("bad", "good"); pool.appendChild(b); });
+        [...$("bAns").querySelectorAll(".blk")].forEach(b => { b.classList.remove("bad", "good"); homeOf(b).appendChild(b); });
         updateBlockState(ws);
       });
       $("bGiveup").addEventListener("click", () => {
@@ -1521,6 +1532,8 @@
       });
       updateBlockState(ws);
     }
+
+    const homeOf = b => $("bPool").children[Number(b.dataset.slot)];
 
     function updateBlockState(ws) {
       const ans = $("bAns"), pool = $("bPool");
@@ -1573,6 +1586,7 @@
       if (!under) return;
       const box = under.closest("#bAns, #bPool");
       if (!box) return;
+      if (box.id === "bPool") { const home = homeOf(bd.el); if (bd.el.parentNode !== home) home.appendChild(bd.el); return; }
       const over = under.closest(".blk");
       if (over && over !== bd.el && box.contains(over)) {
         const r = over.getBoundingClientRect();
@@ -1590,7 +1604,7 @@
       const el = bd.el;
       if (!bd.moved) {
         // 탭: 아래 ↔ 위 칸으로 옮기기
-        (el.closest("#bPool") ? $("bAns") : $("bPool")).appendChild(el);
+        if (el.closest("#bPool")) { $("bAns").appendChild(el); $("bAns").scrollTop = $("bAns").scrollHeight; } else homeOf(el).appendChild(el);
       }
       el.classList.remove("lifting");
       bd.ghost?.remove();
@@ -1657,8 +1671,7 @@
         if (fromEl) {
           const r = fromEl.getBoundingClientRect();
           popAt(r.left + r.width / 2, r.top + r.height / 2, 14 + Math.min(st.combo, 10) * 2, 60 + Math.min(st.combo, 10) * 6);
-          fromEl.classList.add("gone");
-          setTimeout(() => fromEl.remove(), 220);
+          fromEl.classList.add("gone");   // 자리는 그대로 두고 안 보이게만 (다른 블록이 움직이지 않게)
         }
       }
 
