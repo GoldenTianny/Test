@@ -329,6 +329,28 @@
     .blk.ghost { position: fixed; z-index: 50; pointer-events: none; background: #fffbe6; box-shadow: 0 6px 16px rgba(0,0,0,.25); transform: scale(1.08); }
     .blk.bad { border-color: #d33; background: #ffecec; color: #d33; }
     .blk.good { border-color: #2a7; background: #e9f8f1; color: #1a6; }
+    .t-board {
+      min-height: 110px; max-height: 38vh; overflow-y: auto; margin: 12px 0 6px; padding: 10px;
+      border: 2px solid #333; border-radius: 8px; background: #fafafa;
+      display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+    }
+    .t-board .blk { box-shadow: none; padding: 6px 9px; }
+    .t-board.done { border-color: #2a7; background: #f0fbf6; animation: glow 1s ease; }
+    @keyframes glow { 0% { box-shadow: 0 0 0 0 rgba(42,170,119,.6); } 100% { box-shadow: 0 0 0 18px rgba(42,170,119,0); } }
+    .blk.landed { animation: land .35s cubic-bezier(.2,1.6,.4,1); }
+    @keyframes land { 0% { transform: scale(.2) translateY(30px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+    .blk.tap { font-family: inherit; color: #222; cursor: pointer; transition: transform .2s, opacity .2s; }
+    .blk.tap:active { transform: translateY(2px); box-shadow: 0 0 0 #333; }
+    .blk.gone { transform: scale(1.5); opacity: 0; pointer-events: none; }
+    .blk.shake { animation: shake .4s; border-color: #d33; color: #d33; }
+    @keyframes shake { 0%,100% { transform: none; } 20% { transform: translateX(-7px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+    .t-status { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #555; margin-bottom: 8px; }
+    .t-combo { font-weight: 700; color: #fb5607; font-size: 15px; }
+    .t-combo.bump { animation: bump .3s; }
+    @keyframes bump { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
+    .t-cheer { flex: 1; text-align: center; font-size: 22px; font-weight: 700; padding: 8px 0; animation: land .5s cubic-bezier(.2,1.6,.4,1); }
+    .pop { position: fixed; z-index: 60; pointer-events: none; border-radius: 50%; }
+    .pop.emo { font-size: 20px; border-radius: 0; }
     .g-miss { margin-top: 20px; }
     .g-miss .row { display: flex; justify-content: space-between; gap: 8px; padding: 9px 2px; border-bottom: 1px dashed #ddd; font-size: 14px; cursor: pointer; }
     .g-miss .row b { white-space: nowrap; }
@@ -1340,7 +1362,8 @@
 
     const GAMES = {
       cho:   { title: "초성 게임",   ico: "ㅊㅅ", desc: "구절이 초성으로만 보여요. 떠올려 보고, 막히면 단어를 눌러 확인해요." },
-      block: { title: "블록 맞추기", ico: "🧩", desc: "흩어진 말씀 블록을 끌어다 순서대로 놓아 구절을 완성해요." }
+      block: { title: "블록 맞추기", ico: "🧩", desc: "흩어진 말씀 블록을 끌어다 순서대로 놓아 구절을 완성해요." },
+      tap:   { title: "순서대로 톡톡", ico: "🎆", desc: "다음 단어를 찾아 눌러요. 맞히면 팡팡! 정답판에 하나씩 올라가요." }
     };
     function renderGameHome() {
       game = null;
@@ -1380,7 +1403,7 @@
       track("game_start", { game: kind, count: game.pool.length });
       renderQ();
     }
-    const renderQ = () => game.kind === "block" ? renderBlockQ() : renderChoQ();
+    const renderQ = () => game.kind === "block" ? renderBlockQ() : game.kind === "tap" ? renderTapQ() : renderChoQ();
 
     function renderChoQ() {
       const v = game.pool[game.i];
@@ -1578,6 +1601,106 @@
     document.addEventListener("pointermove", blkMove, { passive: false });
     document.addEventListener("pointerup", blkUp);
     document.addEventListener("pointercancel", blkUp);
+
+    // ---------- 순서대로 톡톡 ----------
+    const POP_COLORS = ["#ff4d6d", "#ffb703", "#06d6a0", "#118ab2", "#8338ec", "#fb5607", "#ffd166"];
+    function popAt(x, y, n, spread, emoji) {
+      for (let i = 0; i < n; i++) {
+        const d = document.createElement("span");
+        d.className = "pop";
+        const size = 5 + Math.random() * 7;
+        if (emoji && i % 4 === 0) { d.textContent = emoji[Math.floor(Math.random() * emoji.length)]; d.classList.add("emo"); }
+        else { d.style.width = d.style.height = size + "px"; d.style.background = POP_COLORS[i % POP_COLORS.length];
+               if (Math.random() < .4) d.style.borderRadius = "2px"; }
+        d.style.left = x + "px"; d.style.top = y + "px";
+        document.body.appendChild(d);
+        const a = Math.random() * Math.PI * 2, r = spread * (0.5 + Math.random() * 0.7);
+        const dx = Math.cos(a) * r, dy = Math.sin(a) * r - spread * 0.3;
+        d.animate([
+          { transform: "translate(-50%,-50%) scale(1) rotate(0)", opacity: 1 },
+          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + spread * 0.6}px)) scale(.4) rotate(${Math.random() * 540}deg)`, opacity: 0 }
+        ], { duration: 600 + Math.random() * 500, easing: "cubic-bezier(.15,.7,.3,1)" }).onfinish = () => d.remove();
+      }
+    }
+
+    function renderTapQ() {
+      const v = game.pool[game.i];
+      const set = setById(v.id);
+      const ws = words(v);
+      const st = { pos: 0, miss: 0, combo: 0 };
+      const body = $("gameBody");
+      body.innerHTML =
+        '<div class="g-top"><span>' + (game.i + 1) + ' / ' + game.pool.length + '</span>' +
+        '<span><b>○ ' + game.ok + '</b> &nbsp; <span class="x">✕ ' + game.no + '</span></span></div>' +
+        '<div class="g-q-head"><span class="t">' + v.name.replace(/^\d+\. /, "") + '</span><span class="r">' + v.ref + '</span></div>' +
+        '<div class="g-q-from">' + set.major + ' › ' + set.minor + '</div>' +
+        '<div class="t-board" id="tBoard"><span class="b-empty">첫 단어부터 순서대로 눌러요</span></div>' +
+        '<div class="t-status"><span id="tProg">0 / ' + ws.length + '</span><span class="t-combo" id="tCombo"></span><span id="tMiss">실수 0</span></div>' +
+        '<div class="b-pool" id="tPool"></div>' +
+        '<div class="g-actions" style="margin-top:14px"><button id="tGiveup">정답 보기</button></div>';
+      const pool = $("tPool"), board = $("tBoard");
+      shuffle([...ws]).forEach(w => {
+        const b = document.createElement("button");
+        b.className = "blk tap";
+        b.textContent = w;
+        b.addEventListener("click", () => tapWord(b));
+        pool.appendChild(b);
+      });
+
+      function place(w, fromEl) {
+        board.querySelector(".b-empty")?.remove();
+        const t = document.createElement("span");
+        t.className = "blk good landed";
+        t.textContent = w;
+        board.appendChild(t);
+        board.scrollTop = board.scrollHeight;
+        if (fromEl) {
+          const r = fromEl.getBoundingClientRect();
+          popAt(r.left + r.width / 2, r.top + r.height / 2, 14 + Math.min(st.combo, 10) * 2, 60 + Math.min(st.combo, 10) * 6);
+          fromEl.classList.add("gone");
+          setTimeout(() => fromEl.remove(), 220);
+        }
+      }
+
+      function tapWord(b) {
+        if (b.classList.contains("gone") || st.pos >= ws.length) return;
+        if (b.textContent === ws[st.pos]) {
+          st.pos++; st.combo++;
+          place(ws[st.pos - 1], b);
+          if (navigator.vibrate) navigator.vibrate(12);
+          $("tProg").textContent = st.pos + " / " + ws.length;
+          $("tCombo").textContent = st.combo >= 3 ? "🔥 " + st.combo + " 콤보!" : "";
+          $("tCombo").classList.remove("bump"); void $("tCombo").offsetWidth; $("tCombo").classList.add("bump");
+          if (st.pos === ws.length) finish(st.miss === 0);
+        } else {
+          st.miss++; st.combo = 0;
+          $("tMiss").textContent = "실수 " + st.miss;
+          $("tCombo").textContent = "";
+          b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+          if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+        }
+      }
+
+      function finish(clean) {
+        const r = board.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        popAt(cx, cy, 70, 170, clean ? ["🎉", "✨", "⭐", "💖"] : ["✨", "👏"]);
+        setTimeout(() => popAt(cx - 80, cy - 20, 30, 110), 180);
+        setTimeout(() => popAt(cx + 80, cy - 20, 30, 110), 320);
+        board.classList.add("done");
+        const acts = $("tGiveup").parentNode;
+        acts.innerHTML = '<div class="t-cheer">' + (clean ? "완벽해요! 🎉" : "완성! 👏 실수 " + st.miss + "번") + '</div>';
+        acts.insertAdjacentHTML("afterend", '<div class="g-actions" style="margin-top:8px"><button class="ok" id="tNext">다음 ▶</button></div>');
+        $("tNext").addEventListener("click", () => answer(clean));
+      }
+
+      $("tGiveup").addEventListener("click", () => {
+        for (; st.pos < ws.length; st.pos++) place(ws[st.pos], null);
+        pool.innerHTML = "";
+        st.miss = Math.max(st.miss, 1);
+        finish(false);
+      });
+    }
 
     function openGame() { pushNav({ screen: "game" }); renderGameHome(); show("game"); }
     $("openGame").addEventListener("click", openGame);
