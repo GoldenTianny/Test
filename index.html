@@ -283,6 +283,12 @@
     }
     .g-range button small { color: #777; font-size: 12px; }
     .g-range button:disabled { opacity: .35; cursor: default; }
+    .g-range button.open { background: #333; color: #fff; }
+    .g-range button.open small { color: #ccc; }
+    .g-range button.open .g-arrow { display: inline-block; transform: rotate(180deg); }
+    .g-parts { display: none; flex-direction: column; gap: 6px; margin: -2px 0 6px 14px; padding-left: 10px; border-left: 3px solid #333; }
+    .g-parts.open { display: flex; }
+    .g-parts button { padding: 10px 12px; font-size: 14px; }
     .g-range button:active { background: #eee; }
     .g-top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #555; margin-bottom: 10px; }
     .g-top b { color: #2a7; }
@@ -1357,7 +1363,11 @@
         { key: "learned", label: "✓ 외움 표시한 구절", list: [...learned].map(verseById).filter(Boolean) },
       ];
       const majors = [...new Set(SETS.map(x => x.major))];
-      majors.forEach(m => opts.push({ key: "m:" + m, label: m, list: SETS.filter(x => x.major === m).flatMap(x => x.verses) }));
+      majors.forEach(m => {
+        const sets = SETS.filter(x => x.major === m);
+        opts.push({ key: "m:" + m, label: m, list: sets.flatMap(x => x.verses),
+                    parts: sets.length > 1 ? sets.map(x => ({ label: x.minor, list: x.verses })) : null });
+      });
       opts.push({ key: "all", label: "전체 (795구절 중 랜덤)", list: allVerses() });
       return opts;
     }
@@ -1392,10 +1402,21 @@
       box.className = "g-range";
       rangeOptions().forEach(o => {
         const b = document.createElement("button");
-        b.innerHTML = '<span>' + o.label + '</span><small>' + o.list.length + '구절</small>';
+        b.innerHTML = '<span>' + o.label + '</span><small>' + o.list.length + '구절' + (o.parts ? ' <span class="g-arrow">▾</span>' : '') + '</small>';
         b.disabled = o.list.length === 0;
-        b.addEventListener("click", () => startGame(kind, o.list));
         box.appendChild(b);
+        if (!o.parts) { b.addEventListener("click", () => startGame(kind, o.list)); return; }
+        // 묶음이 여러 개면 눌러서 중파트를 펼쳐 골라요
+        const sub = document.createElement("div");
+        sub.className = "g-parts";
+        [{ label: "전체 " + o.label, list: o.list }, ...o.parts].forEach(pt => {
+          const pb = document.createElement("button");
+          pb.innerHTML = '<span>' + pt.label + '</span><small>' + pt.list.length + '구절</small>';
+          pb.addEventListener("click", () => startGame(kind, pt.list));
+          sub.appendChild(pb);
+        });
+        box.appendChild(sub);
+        b.addEventListener("click", () => { sub.classList.toggle("open"); b.classList.toggle("open", sub.classList.contains("open")); });
       });
       body.appendChild(box);
     }
