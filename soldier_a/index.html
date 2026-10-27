@@ -4,12 +4,184 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>soldier_a</title>
+  <title>SOLDIER-A</title>
   <style>
-    html, body { margin: 0; height: 100%; }
-    body { background: #fff; color: #222; font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; }
+    body {
+      background: #fff; color: #222;
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      max-width: 640px; margin: 0 auto; padding: 0 16px 60px;
+    }
+    .hide { display: none !important; }
+    button {
+      font-family: inherit; cursor: pointer; border: 1px solid #333; background: #fff; color: #222;
+      border-radius: 6px; padding: 8px 14px; font-size: 14px; font-weight: 700;
+    }
+    button.primary { background: #333; color: #fff; }
+    button:disabled { opacity: .4; cursor: default; }
+
+    /* 로그인 */
+    .login { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+    .login h1 { font-size: 24px; letter-spacing: 1px; margin: 0; }
+    .login p { color: #777; font-size: 14px; margin: 0 0 10px; }
+    .login input { font-size: 16px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
+    .err { color: #d33; font-size: 13px; min-height: 18px; }
+
+    /* 본문 */
+    header { padding: 22px 0 10px; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    header h1 { font-size: 18px; margin: 0; line-height: 1.4; }
+    header button { font-size: 12px; padding: 5px 10px; flex-shrink: 0; }
+    .verse { font-size: 14px; color: #555; line-height: 1.7; padding: 12px 2px; border-bottom: 1px solid #ddd; }
+    .jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0; }
+    .jump button { font-size: 13px; padding: 5px 10px; font-weight: 400; }
+    .person { margin-top: 18px; scroll-margin-top: 10px; }
+    .p-head {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #e6e6e6; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 8px 10px;
+    }
+    .p-head b { font-size: 16px; }
+    .p-head small { color: #777; font-size: 11px; margin-left: 6px; font-weight: 400; }
+    .p-head button { font-size: 12px; padding: 4px 10px; }
+    .p-text { white-space: pre-wrap; font-size: 15px; line-height: 1.75; padding: 10px 4px; }
+    .p-text:empty::before { content: "아직 입력된 기도제목이 없어요."; color: #aaa; }
+    textarea {
+      width: 100%; min-height: 220px; font-family: inherit; font-size: 15px; line-height: 1.7;
+      padding: 10px; border: 1px solid #333; border-radius: 6px; margin-top: 8px;
+    }
+    .edit-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .status { text-align: center; color: #777; font-size: 14px; padding: 40px 0; }
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+      background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px;
+      opacity: 0; transition: opacity .2s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
+
+  <!-- 팀 비밀번호 -->
+  <section class="login" id="login">
+    <h1>SOLDIER-A</h1>
+    <p>팀 비밀번호를 입력하세요.</p>
+    <input type="password" id="pw" autocomplete="current-password" placeholder="팀 비밀번호">
+    <button class="primary" id="enter">들어가기</button>
+    <div class="err" id="err"></div>
+  </section>
+
+  <!-- 기도제목 -->
+  <section class="hide" id="main">
+    <header>
+      <h1 id="title">기도제목</h1>
+      <button id="logout">나가기</button>
+    </header>
+    <div class="verse" id="verse"></div>
+    <div class="jump" id="jump"></div>
+    <div id="list"><div class="status">불러오는 중…</div></div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // 구글 시트의 Apps Script 웹 앱 주소 (https://script.google.com/macros/s/.../exec)
+    const API_URL = "";
+
+    const PW_KEY = "soldier_a.pw";
+    const $ = id => document.getElementById(id);
+    let pw = "";
+    try { pw = localStorage.getItem(PW_KEY) || ""; } catch (e) {}
+
+    function toast(msg) {
+      $("toast").textContent = msg; $("toast").classList.add("show");
+      setTimeout(() => $("toast").classList.remove("show"), 1800);
+    }
+    const fmt = iso => {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return (d.getMonth() + 1) + "/" + d.getDate() + " 수정";
+    };
+
+    async function load() {
+      if (!API_URL) { showLogin("아직 구글 시트가 연결되지 않았어요."); return; }
+      const res = await fetch(API_URL + "?pw=" + encodeURIComponent(pw)).then(r => r.json()).catch(() => null);
+      if (!res) { showLogin("불러오지 못했어요. 잠시 후 다시 시도해 주세요."); return; }
+      if (!res.ok) { try { localStorage.removeItem(PW_KEY); } catch (e) {} showLogin(pw ? "비밀번호가 맞지 않아요." : ""); return; }
+      try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
+      $("login").classList.add("hide");
+      $("main").classList.remove("hide");
+      $("title").textContent = res.title || "기도제목";
+      $("verse").textContent = res.verse || "";
+      render(res.people || []);
+    }
+
+    function showLogin(msg) {
+      $("main").classList.add("hide");
+      $("login").classList.remove("hide");
+      $("err").textContent = msg || "";
+    }
+
+    function render(people) {
+      const list = $("list"), jump = $("jump");
+      list.innerHTML = ""; jump.innerHTML = "";
+      people.forEach((p, i) => {
+        const id = "p" + i;
+        const j = document.createElement("button");
+        j.textContent = p.name;
+        j.addEventListener("click", () => $(id).scrollIntoView({ behavior: "smooth" }));
+        jump.appendChild(j);
+
+        const box = document.createElement("div");
+        box.className = "person"; box.id = id;
+        box.innerHTML =
+          '<div class="p-head"><span><b></b><small></small></span><button>수정</button></div>' +
+          '<div class="p-text"></div>';
+        box.querySelector("b").textContent = p.name;
+        box.querySelector("small").textContent = fmt(p.updated);
+        const text = box.querySelector(".p-text");
+        text.textContent = p.text;
+        box.querySelector("button").addEventListener("click", () => edit(box, p));
+        list.appendChild(box);
+      });
+    }
+
+    function edit(box, p) {
+      if (box.querySelector("textarea")) return;
+      const text = box.querySelector(".p-text");
+      text.classList.add("hide");
+      const ta = document.createElement("textarea");
+      ta.value = p.text;
+      const acts = document.createElement("div");
+      acts.className = "edit-actions";
+      acts.innerHTML = '<button>취소</button><button class="primary">저장</button>';
+      box.appendChild(ta); box.appendChild(acts);
+      ta.focus();
+      const close = () => { ta.remove(); acts.remove(); text.classList.remove("hide"); };
+      acts.children[0].addEventListener("click", close);
+      acts.children[1].addEventListener("click", async () => {
+        acts.children[1].disabled = true; acts.children[1].textContent = "저장 중…";
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ pw, name: p.name, text: ta.value })
+        }).then(r => r.json()).catch(() => null);
+        if (res && res.ok) {
+          p.text = ta.value; p.updated = res.updated;
+          text.textContent = p.text;
+          box.querySelector("small").textContent = fmt(p.updated);
+          close(); toast("저장했어요");
+        } else {
+          acts.children[1].disabled = false; acts.children[1].textContent = "저장";
+          toast("저장하지 못했어요. 다시 시도해 주세요.");
+        }
+      });
+    }
+
+    $("enter").addEventListener("click", () => { pw = $("pw").value.trim(); if (pw) load(); });
+    $("pw").addEventListener("keydown", e => { if (e.key === "Enter") $("enter").click(); });
+    $("logout").addEventListener("click", () => { try { localStorage.removeItem(PW_KEY); } catch (e) {} pw = ""; $("pw").value = ""; showLogin(""); });
+
+    if (pw) load(); else showLogin(API_URL ? "" : "아직 구글 시트가 연결되지 않았어요.");
+  </script>
 </body>
 </html>
