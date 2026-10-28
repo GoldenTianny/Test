@@ -225,7 +225,7 @@
   <section class="hide" id="main">
     <header>
       <h1 id="title">기도제목</h1>
-      <div class="btns"><button id="pdfBtn" class="hide">PDF</button><button id="editPeriod">정보 수정</button><button id="backToTl">목록</button></div>
+      <div class="btns"><button id="pdfBtn">PDF</button><button id="editPeriod">정보 수정</button><button id="backToTl">목록</button></div>
     </header>
     <div class="period-label" id="periodLabel"></div>
     <div class="readonly hide" id="readonlyNote">🔒 지난 기간이라 읽기만 할 수 있어요.</div>
@@ -354,7 +354,6 @@
       $("editPeriod").classList.toggle("hide", !editable);
       $("readonlyNote").classList.toggle("hide", editable);
       $("addPerson").classList.toggle("hide", !isAdmin);
-      $("pdfBtn").classList.toggle("hide", !isAdmin);
       $("periodLabel").textContent = res.label;
       $("title").textContent = res.title || "기도제목";
       $("verse").textContent = res.verse || "";
