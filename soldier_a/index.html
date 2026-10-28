@@ -146,6 +146,9 @@
     .pv-bar span { display: flex; gap: 6px; align-items: center; }
     .pv-bar button { font-size: 12px; padding: 6px 10px; }
     .pv-bar button.on { background: #333; color: #fff; }
+    .pv-bar { flex-wrap: wrap; }
+    .pv-bar .pv-edit { width: 100%; border-top: 1px solid #ddd; padding-top: 8px; font-weight: 400; color: #555; }
+    .pv-bar .pv-edit button { padding: 6px 9px; }
     .pv-tip { font-size: 12px; color: #666; text-align: center; padding: 8px 12px 0; line-height: 1.6; }
     .doc:focus { outline: 2px dashed #f0b400; outline-offset: -6px; }
     .doc {
@@ -160,6 +163,7 @@
     .doc .d-sub { }
     .doc .d-line { }
     .doc .d-ref { color: #333; }
+    .doc .d-hang { padding-left: 1.3em; text-indent: -1.3em; }
     @page { size: 148mm 210mm; margin: 18mm 15mm 16mm; @bottom-center { content: "-" counter(page) "-"; font-size: 9pt; } }
     @media print {
       body > *:not(.pv) { display: none !important; }
@@ -245,8 +249,10 @@
     <div class="pv-bar no-print">
       <span>팀 <button data-t="A">A팀</button><button data-t="B">B팀</button></span>
       <span><button id="pvReset">원래대로</button><button class="primary" id="pvPrint">PDF로 저장 / 인쇄</button><button id="pvClose">닫기</button></span>
+      <span class="pv-edit">들여쓰기 <button id="pvOut">⇤ 왼쪽</button><button id="pvIn">오른쪽 ⇥</button><button id="pvHang">둘째 줄 맞춤</button></span>
     </div>
-    <div class="pv-tip no-print">✏️ 아래 내용을 눌러서 <b>바로 고칠 수 있어요</b> (PDF에만 반영, 기도제목 원본은 그대로)<br>「PDF로 저장 / 인쇄」 → 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 저장돼요.</div>
+    <div class="pv-tip no-print">✏️ 아래 내용을 눌러서 <b>바로 고칠 수 있어요</b> (PDF에만 반영, 기도제목 원본은 그대로)<br>
+      줄을 누르거나 여러 줄을 선택한 뒤 「오른쪽 ⇥」「⇤ 왼쪽」으로 들여쓰기, 「둘째 줄 맞춤」은 넘어간 줄을 번호 뒤에 맞춰요.<br>「PDF로 저장 / 인쇄」 → 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 저장돼요.</div>
     <article class="doc" id="doc" contenteditable="true" spellcheck="false"></article>
   </div>
 
@@ -594,7 +600,45 @@
     // PDF 화면에서 고친 내용(기간·팀별로 기억, 새로고침하면 사라짐)
     const pvEdits = {}; let pvTeam = "A";
     const pvKey = t => (current && (current.id ?? current.label)) + ":" + t;
-    $("doc").addEventListener("input", () => { pvEdits[pvKey(pvTeam)] = $("doc").innerHTML; });
+    const pvSave = () => { pvEdits[pvKey(pvTeam)] = $("doc").innerHTML; };
+    $("doc").addEventListener("input", pvSave);
+    // 들여쓰기: 커서가 있는 줄(또는 선택한 여러 줄)에 적용
+    let pvRange = null;   // 휴대폰에서 버튼을 누르면 선택이 풀리므로 마지막 위치를 기억
+    document.addEventListener("selectionchange", () => {
+      const sel = getSelection(); if (sel.rangeCount && $("doc").contains(sel.anchorNode)) pvRange = sel.getRangeAt(0).cloneRange();
+    });
+    function pvLines() {
+      const sel = getSelection(), doc = $("doc");
+      const r = sel.rangeCount && doc.contains(sel.anchorNode) ? sel.getRangeAt(0) : pvRange;
+      if (!r || !doc.contains(r.startContainer)) return [];
+      const leaf = el => el !== doc && !el.querySelector("div,h1,h2,p,section");
+      let ls = [...doc.querySelectorAll("h1,h2,div,p")].filter(el => leaf(el) && r.intersectsNode(el));
+      if (!ls.length) {
+        let n = r.startContainer; n = n.nodeType === 1 ? n : n.parentElement;
+        const b = n.closest("h1,h2,div,p"); if (b && b !== doc && doc.contains(b)) ls = [b];
+      }
+      return ls;
+    }
+    function pvIndent(d) {
+      const ls = pvLines(); if (!ls.length) return toast("고칠 줄을 먼저 눌러 주세요");
+      ls.forEach(el => {
+        const v = Math.max(0, Math.min(8, (parseFloat(el.dataset.ind) || 0) + d));
+        el.dataset.ind = v; el.style.marginLeft = v ? v + "em" : "";
+      });
+      pvSave();
+    }
+    function pvHang() {
+      const ls = pvLines(); if (!ls.length) return toast("고칠 줄을 먼저 눌러 주세요");
+      const on = !ls.every(el => el.classList.contains("d-hang"));
+      ls.forEach(el => el.classList.toggle("d-hang", on));
+      pvSave();
+    }
+    // 버튼을 눌러도 커서/선택이 풀리지 않게
+    ["pvIn", "pvOut", "pvHang"].forEach(id => $(id).addEventListener("mousedown", e => e.preventDefault()));
+    $("pvIn").addEventListener("click", () => pvIndent(1));
+    $("pvOut").addEventListener("click", () => pvIndent(-1));
+    $("pvHang").addEventListener("click", pvHang);
+    $("doc").addEventListener("keydown", e => { if (e.key === "Tab") { e.preventDefault(); pvIndent(e.shiftKey ? -1 : 1); } });
     $("pvReset").addEventListener("click", () => {
       if (!pvEdits[pvKey(pvTeam)] || !confirm("고친 내용을 지우고 원래대로 돌릴까요?")) return;
       delete pvEdits[pvKey(pvTeam)]; buildDoc(pvTeam);
