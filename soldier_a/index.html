@@ -81,6 +81,8 @@
     .form .row { display: flex; gap: 8px; }
     .form .row > * { flex: 1; }
     .form .note { font-size: 12px; color: #888; }
+    .form .check-row { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; color: #222; font-size: 14px; }
+    .form .check-row input { width: auto; }
 
     .toast {
       position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
@@ -124,7 +126,8 @@
       <label>기간 이름<input id="fLabel" placeholder="예: 2026년 11–12월"></label>
       <label>제목<input id="fTitle" placeholder="예: 2026년 SOLDIER-A Team 11,12월 기도제목"></label>
       <label>말씀<textarea id="fVerse" placeholder="이번 기간의 말씀"></textarea></label>
-      <div class="note" id="formNote">지난 기간의 이름 목록을 그대로 가져오고, 기도제목 내용은 비워 둬요.</div>
+      <label class="check-row" id="copyRow"><input type="checkbox" id="fCopy" checked> 지난 기간 기도제목 내용도 그대로 복사하기</label>
+      <div class="note" id="formNote">지난 기간의 이름 목록을 그대로 가져와요. 복사하지 않으면 내용은 비워 둬요.</div>
       <button class="primary" id="formSave">만들기</button>
     </div>
   </section>
@@ -309,6 +312,7 @@
       $("formSave").textContent = editing ? "저장" : "만들기";
       $("monthRow").classList.toggle("hide", !!editing);
       $("formNote").classList.toggle("hide", !!editing);
+      $("copyRow").classList.toggle("hide", !!editing);
       $("periodForm").dataset.edit = editing ? editing.id : "";
       if (editing) {
         $("fLabel").value = editing.label; $("fTitle").value = editing.title; $("fVerse").value = editing.verse;
@@ -320,7 +324,7 @@
       if (last && last.starts_on) { const d = new Date(last.starts_on); y = d.getFullYear(); m = d.getMonth() + 3; if (m > 12) { m -= 12; y++; } }
       $("fYear").value = y; $("fMonth").value = m;
       fillDefaults();
-      $("fVerse").value = "";
+      $("fVerse").value = last ? (last.verse || "") : "";
     }
     function fillDefaults() {
       const y = +$("fYear").value, m = +$("fMonth").value;
@@ -343,7 +347,7 @@
         else {
           const y = +$("fYear").value, m = +$("fMonth").value;
           const starts = y + "-" + String(m).padStart(2, "0") + "-01";
-          res = await rpc("create_period", { p_label: label, p_starts_on: starts, p_title: $("fTitle").value, p_verse: $("fVerse").value });
+          res = await rpc("create_period", { p_label: label, p_starts_on: starts, p_title: $("fTitle").value, p_verse: $("fVerse").value, p_copy: $("fCopy").checked });
         }
       } catch (e) {}
       $("formSave").disabled = false;
