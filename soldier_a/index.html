@@ -85,6 +85,7 @@
     .jump button.me { background: #333; color: #fff; }
     .team-head { font-size: 15px; font-weight: 700; margin: 26px 0 -6px; padding-bottom: 6px; border-bottom: 2px solid #333; }
     .person { margin-top: 18px; scroll-margin-top: 10px; }
+    .person.common .p-head { background: #fff7e0; }
     .person.me .p-head { background: #333; color: #fff; }
     .person.me .p-head small { color: #ccc; }
     .p-head {
@@ -323,7 +324,7 @@
     function fillMe() {
       const sel = $("meSelect");
       sel.length = 1;
-      current.people.filter(p => !/전체$/.test(p.name)).forEach(p => {
+      current.people.filter(p => !isGroup(p)).forEach(p => {
         const o = document.createElement("option");
         o.value = p.name; o.textContent = p.name + " (" + p.team + "팀)";
         sel.appendChild(o);
@@ -331,7 +332,7 @@
       sel.value = current.people.some(p => p.name === me) ? me : "";
     }
 
-    const isGroup = p => /전체$/.test(p.name);
+    const isGroup = p => p.team === "C" || /전체$/.test(p.name);   // 공통 기도제목
     let onlyWait = false;
 
     function updateProgress() {
@@ -355,9 +356,10 @@
       list.innerHTML = ""; jump.innerHTML = "";
       const editable = current.editable !== false;
       updateProgress();
-      ["A", "B"].filter(t => tab === "ALL" || tab === t).forEach(t => {
+      // 공통 기도제목은 어느 탭에서나 맨 위에, 그다음 팀별
+      ["C", "A", "B"].filter(t => t === "C" ? !onlyWait : (tab === "ALL" || tab === t)).forEach(t => {
         const people = current.people.filter(p => p.team === t && !(onlyWait && (p.confirmed || isGroup(p))));
-        if (tab === "ALL" && people.length) {
+        if (tab === "ALL" && t !== "C" && people.length) {
           const h = document.createElement("div");
           h.className = "team-head"; h.textContent = t + "팀";
           list.appendChild(h);
@@ -372,7 +374,7 @@
           jump.appendChild(j);
 
           const box = document.createElement("div");
-          box.className = "person" + (p.name === me ? " me" : ""); box.id = id;
+          box.className = "person" + (p.name === me ? " me" : "") + (p.team === "C" ? " common" : ""); box.id = id;
           box.innerHTML = '<div class="p-head"><span><b></b><span class="chip"></span><small></small></span><span class="acts"></span></div><div class="p-text"></div>';
           box.querySelector("b").textContent = p.name;
           box.querySelector(".p-text").textContent = p.text;
