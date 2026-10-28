@@ -20,19 +20,44 @@
     }
     button.primary { background: #333; color: #fff; }
     button:disabled { opacity: .4; cursor: default; }
+    input, textarea {
+      width: 100%; font-family: inherit; font-size: 15px; padding: 10px; border: 1px solid #333; border-radius: 6px;
+    }
 
     /* 로그인 */
     .login { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
     .login h1 { font-size: 24px; letter-spacing: 1px; margin: 0; }
     .login p { color: #777; font-size: 14px; margin: 0 0 10px; }
-    .login input { font-size: 16px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
+    .login input { font-size: 16px; padding: 12px; }
     .err { color: #d33; font-size: 13px; min-height: 18px; }
 
-    /* 본문 */
-    header { padding: 22px 0 10px; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    header { padding: 22px 0 10px; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     header h1 { font-size: 18px; margin: 0; line-height: 1.4; }
-    header button { font-size: 12px; padding: 5px 10px; flex-shrink: 0; }
-    .verse { font-size: 14px; color: #555; line-height: 1.7; padding: 12px 2px; border-bottom: 1px solid #ddd; }
+    header .btns { display: flex; gap: 6px; flex-shrink: 0; }
+    header button { font-size: 12px; padding: 5px 10px; }
+
+    /* 타임라인 */
+    .tl { position: relative; padding: 18px 0 10px 26px; }
+    .tl::before { content: ""; position: absolute; left: 8px; top: 24px; bottom: 20px; width: 2px; background: #333; }
+    .tl-item { position: relative; margin-bottom: 18px; cursor: pointer; }
+    .tl-item::before {
+      content: ""; position: absolute; left: -24px; top: 6px; width: 14px; height: 14px;
+      border-radius: 50%; background: #fff; border: 2px solid #333;
+    }
+    .tl-item.now::before { background: #333; box-shadow: 0 0 0 4px #e6e6e6; }
+    .tl-label { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 6px; }
+    .tl-item.now .tl-label::after { content: "지금"; margin-left: 6px; font-size: 11px; background: #333; color: #fff; padding: 1px 7px; border-radius: 10px; }
+    .tl-card { border: 1px solid #333; border-radius: 8px; padding: 12px 14px; background: #fff; }
+    .tl-card:active { background: #f3f3f3; }
+    .tl-title { font-size: 16px; font-weight: 700; line-height: 1.4; }
+    .tl-verse { font-size: 13px; color: #666; line-height: 1.6; margin-top: 6px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tl-meta { font-size: 12px; color: #999; margin-top: 8px; }
+    .empty { color: #999; font-size: 14px; text-align: center; padding: 40px 0; }
+
+    /* 기간 상세 */
+    .period-label { font-size: 13px; font-weight: 700; color: #555; padding-top: 14px; }
+    .verse { font-size: 14px; color: #555; line-height: 1.7; padding: 10px 2px 12px; border-bottom: 1px solid #ddd; white-space: pre-wrap; }
     .jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0; }
     .jump button { font-size: 13px; padding: 5px 10px; font-weight: 400; }
     .person { margin-top: 18px; scroll-margin-top: 10px; }
@@ -45,12 +70,18 @@
     .p-head button { font-size: 12px; padding: 4px 10px; }
     .p-text { white-space: pre-wrap; font-size: 15px; line-height: 1.75; padding: 10px 4px; }
     .p-text:empty::before { content: "아직 입력된 기도제목이 없어요."; color: #aaa; }
-    textarea {
-      width: 100%; min-height: 220px; font-family: inherit; font-size: 15px; line-height: 1.7;
-      padding: 10px; border: 1px solid #333; border-radius: 6px; margin-top: 8px;
-    }
+    .person textarea { min-height: 220px; line-height: 1.7; margin-top: 8px; }
     .edit-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
     .status { text-align: center; color: #777; font-size: 14px; padding: 40px 0; }
+
+    /* 새 기간 / 기간 정보 수정 */
+    .form { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; }
+    .form label { font-size: 13px; font-weight: 700; color: #555; display: flex; flex-direction: column; gap: 6px; }
+    .form textarea { min-height: 120px; line-height: 1.6; }
+    .form .row { display: flex; gap: 8px; }
+    .form .row > * { flex: 1; }
+    .form .note { font-size: 12px; color: #888; }
+
     .toast {
       position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
       background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px;
@@ -70,12 +101,41 @@
     <div class="err" id="err"></div>
   </section>
 
-  <!-- 기도제목 -->
+  <!-- 타임라인 -->
+  <section class="hide" id="timeline">
+    <header>
+      <h1>SOLDIER-A 기도제목</h1>
+      <div class="btns"><button id="newPeriodBtn">+ 새 기간</button><button id="logout">나가기</button></div>
+    </header>
+    <div class="tl" id="tl"><div class="status">불러오는 중…</div></div>
+  </section>
+
+  <!-- 새 기간 만들기 / 기간 정보 수정 -->
+  <section class="hide" id="periodForm">
+    <header>
+      <h1 id="formTitle">새 기간 만들기</h1>
+      <div class="btns"><button id="formCancel">취소</button></div>
+    </header>
+    <div class="form">
+      <div class="row" id="monthRow">
+        <label>연도<input type="number" id="fYear" inputmode="numeric"></label>
+        <label>시작 월<input type="number" id="fMonth" min="1" max="12" inputmode="numeric"></label>
+      </div>
+      <label>기간 이름<input id="fLabel" placeholder="예: 2026년 11–12월"></label>
+      <label>제목<input id="fTitle" placeholder="예: 2026년 SOLDIER-A Team 11,12월 기도제목"></label>
+      <label>말씀<textarea id="fVerse" placeholder="이번 기간의 말씀"></textarea></label>
+      <div class="note" id="formNote">지난 기간의 이름 목록을 그대로 가져오고, 기도제목 내용은 비워 둬요.</div>
+      <button class="primary" id="formSave">만들기</button>
+    </div>
+  </section>
+
+  <!-- 기간 상세 -->
   <section class="hide" id="main">
     <header>
       <h1 id="title">기도제목</h1>
-      <button id="logout">나가기</button>
+      <div class="btns"><button id="editPeriod">정보 수정</button><button id="backToTl">목록</button></div>
     </header>
+    <div class="period-label" id="periodLabel"></div>
     <div class="verse" id="verse"></div>
     <div class="jump" id="jump"></div>
     <div id="list"><div class="status">불러오는 중…</div></div>
@@ -84,25 +144,22 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    // Supabase 프로젝트 주소와 공개(anon) 키. 공개 키라도 팀 비밀번호 없이는 아무것도 읽거나 쓸 수 없어요.
+    // Supabase 프로젝트 주소와 공개 키. 공개 키라도 팀 비밀번호 없이는 아무것도 읽거나 쓸 수 없어요.
     const SUPABASE_URL = "https://rkrzgrdeqyvuwdbhiumz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_qp-wPae73D9GOC7TZ31Bnw_iHYuHs1G";
-    const API_URL = SUPABASE_URL;
 
     const PW_KEY = "soldier_a.pw";
     const $ = id => document.getElementById(id);
     let pw = "";
     try { pw = localStorage.getItem(PW_KEY) || ""; } catch (e) {}
+    let periods = [];
+    let current = null;   // 지금 열려 있는 기간
 
     function toast(msg) {
       $("toast").textContent = msg; $("toast").classList.add("show");
       setTimeout(() => $("toast").classList.remove("show"), 1800);
     }
-    const fmt = iso => {
-      if (!iso) return "";
-      const d = new Date(iso);
-      return (d.getMonth() + 1) + "/" + d.getDate() + " 수정";
-    };
+    const md = iso => { if (!iso) return ""; const d = new Date(iso); return (d.getMonth() + 1) + "/" + d.getDate(); };
 
     async function rpc(fn, args) {
       const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + fn, {
@@ -110,38 +167,77 @@
         // 새 형식 키(sb_publishable_…)는 apikey 헤더만, 예전 anon 키(eyJ…)는 Authorization 도 함께 보내요.
         headers: Object.assign({ "Content-Type": "application/json", apikey: SUPABASE_KEY },
           SUPABASE_KEY.startsWith("sb_") ? {} : { Authorization: "Bearer " + SUPABASE_KEY }),
-        body: JSON.stringify(args)
+        body: JSON.stringify(Object.assign({ pw }, args || {}))
       });
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     }
-    const getData = () => rpc("get_prayers", { pw });
 
-    async function load() {
-      if (!SUPABASE_URL || !SUPABASE_KEY) { showLogin("아직 데이터베이스가 연결되지 않았어요."); return; }
+    // ---------- 화면 전환 (휴대폰 뒤로가기도 동작) ----------
+    const SECTIONS = ["login", "timeline", "periodForm", "main"];
+    function show(id) { SECTIONS.forEach(k => $(k).classList.toggle("hide", k !== id)); window.scrollTo(0, 0); }
+    function go(state, replace) {
+      try { history[replace ? "replaceState" : "pushState"](state, ""); } catch (e) {}
+      route(state);
+    }
+    function route(state) {
+      if (!state || state.v === "timeline") return showTimeline(true);
+      if (state.v === "period") return openPeriod(state.id);
+      if (state.v === "form") return showForm(state.id);
+    }
+    window.addEventListener("popstate", e => { if (pw && $("login").classList.contains("hide")) route(e.state); });
+
+    // ---------- 로그인 ----------
+    async function enter() {
       $("enter").disabled = true; $("enter").textContent = "확인 중…";
       let res = null;
-      try { res = await getData(); } catch (e) {}
+      try { res = await rpc("list_periods"); } catch (e) {}
       $("enter").disabled = false; $("enter").textContent = "들어가기";
       if (!res) { showLogin("불러오지 못했어요. 잠시 후 다시 시도해 주세요."); return; }
       if (!res.ok) { try { localStorage.removeItem(PW_KEY); } catch (e) {} showLogin(pw ? "비밀번호가 맞지 않아요." : ""); return; }
       try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
-      $("login").classList.add("hide");
-      $("main").classList.remove("hide");
+      periods = res.periods || [];
+      go({ v: "timeline" }, true);
+    }
+    function showLogin(msg) { show("login"); $("err").textContent = msg || ""; }
+
+    // ---------- 타임라인 ----------
+    async function showTimeline(refresh) {
+      show("timeline");
+      if (refresh) {
+        try { const res = await rpc("list_periods"); if (res.ok) periods = res.periods || []; } catch (e) {}
+      }
+      const tl = $("tl");
+      tl.innerHTML = "";
+      if (!periods.length) { tl.innerHTML = '<div class="empty">아직 기간이 없어요. 「+ 새 기간」으로 만들어 주세요.</div>'; return; }
+      periods.forEach((p, i) => {
+        const it = document.createElement("div");
+        it.className = "tl-item" + (i === 0 ? " now" : "");
+        it.innerHTML =
+          '<div class="tl-label"></div>' +
+          '<div class="tl-card"><div class="tl-title"></div><div class="tl-verse"></div><div class="tl-meta"></div></div>';
+        it.querySelector(".tl-label").textContent = p.label;
+        it.querySelector(".tl-title").textContent = p.title || "(제목 없음)";
+        it.querySelector(".tl-verse").textContent = p.verse || "";
+        it.querySelector(".tl-meta").textContent = p.count + "명" + (p.updated ? " · 최근 수정 " + md(p.updated) : "");
+        it.addEventListener("click", () => go({ v: "period", id: p.id }));
+        tl.appendChild(it);
+      });
+    }
+
+    // ---------- 기간 상세 ----------
+    async function openPeriod(id) {
+      show("main");
+      $("list").innerHTML = '<div class="status">불러오는 중…</div>';
+      $("jump").innerHTML = ""; $("title").textContent = ""; $("verse").textContent = ""; $("periodLabel").textContent = "";
+      let res = null;
+      try { res = await rpc("get_period", { pid: id }); } catch (e) {}
+      if (!res || !res.ok) { $("list").innerHTML = '<div class="status">불러오지 못했어요.</div>'; return; }
+      current = res;
+      $("periodLabel").textContent = res.label;
       $("title").textContent = res.title || "기도제목";
       $("verse").textContent = res.verse || "";
       render(res.people || []);
-    }
-
-    async function saveText(name, text) {
-      try { return await rpc("save_prayer", { pw, p_name: name, p_text: text }); }
-      catch (e) { return null; }
-    }
-
-    function showLogin(msg) {
-      $("main").classList.add("hide");
-      $("login").classList.remove("hide");
-      $("err").textContent = msg || "";
     }
 
     function render(people) {
@@ -160,9 +256,8 @@
           '<div class="p-head"><span><b></b><small></small></span><button>수정</button></div>' +
           '<div class="p-text"></div>';
         box.querySelector("b").textContent = p.name;
-        box.querySelector("small").textContent = fmt(p.updated);
-        const text = box.querySelector(".p-text");
-        text.textContent = p.text;
+        box.querySelector("small").textContent = p.updated ? md(p.updated) + " 수정" : "";
+        box.querySelector(".p-text").textContent = p.text;
         box.querySelector("button").addEventListener("click", () => edit(box, p));
         list.appendChild(box);
       });
@@ -183,11 +278,12 @@
       acts.children[0].addEventListener("click", close);
       acts.children[1].addEventListener("click", async () => {
         acts.children[1].disabled = true; acts.children[1].textContent = "저장 중…";
-        const res = await saveText(p.name, ta.value);
+        let res = null;
+        try { res = await rpc("save_prayer", { pid: current.id, p_name: p.name, p_text: ta.value }); } catch (e) {}
         if (res && res.ok) {
           p.text = ta.value; p.updated = res.updated;
           text.textContent = p.text;
-          box.querySelector("small").textContent = fmt(p.updated);
+          box.querySelector("small").textContent = md(p.updated) + " 수정";
           close(); toast("저장했어요");
         } else {
           acts.children[1].disabled = false; acts.children[1].textContent = "저장";
@@ -196,11 +292,67 @@
       });
     }
 
-    $("enter").addEventListener("click", () => { pw = $("pw").value.trim(); if (pw) load(); });
+    // ---------- 새 기간 / 기간 정보 수정 ----------
+    function showForm(editId) {
+      show("periodForm");
+      const editing = editId && current && current.id === editId ? current : null;
+      $("formTitle").textContent = editing ? "기간 정보 수정" : "새 기간 만들기";
+      $("formSave").textContent = editing ? "저장" : "만들기";
+      $("monthRow").classList.toggle("hide", !!editing);
+      $("formNote").classList.toggle("hide", !!editing);
+      $("periodForm").dataset.edit = editing ? editing.id : "";
+      if (editing) {
+        $("fLabel").value = editing.label; $("fTitle").value = editing.title; $("fVerse").value = editing.verse;
+        return;
+      }
+      // 지난 기간 다음 두 달을 기본값으로
+      const last = periods[0];
+      let y = new Date().getFullYear(), m = new Date().getMonth() + 1;
+      if (last && last.starts_on) { const d = new Date(last.starts_on); y = d.getFullYear(); m = d.getMonth() + 3; if (m > 12) { m -= 12; y++; } }
+      $("fYear").value = y; $("fMonth").value = m;
+      fillDefaults();
+      $("fVerse").value = "";
+    }
+    function fillDefaults() {
+      const y = +$("fYear").value, m = +$("fMonth").value;
+      if (!y || !m) return;
+      const m2 = m === 12 ? 1 : m + 1;
+      $("fLabel").value = y + "년 " + m + "–" + m2 + "월";
+      $("fTitle").value = y + "년 SOLDIER-A Team " + m + "," + m2 + "월 기도제목";
+    }
+    $("fYear").addEventListener("input", fillDefaults);
+    $("fMonth").addEventListener("input", fillDefaults);
+
+    $("formSave").addEventListener("click", async () => {
+      const label = $("fLabel").value.trim();
+      if (!label) { toast("기간 이름을 입력해 주세요"); return; }
+      const editId = +$("periodForm").dataset.edit || 0;
+      $("formSave").disabled = true;
+      let res = null;
+      try {
+        if (editId) res = await rpc("update_period", { pid: editId, p_label: label, p_title: $("fTitle").value, p_verse: $("fVerse").value });
+        else {
+          const y = +$("fYear").value, m = +$("fMonth").value;
+          const starts = y + "-" + String(m).padStart(2, "0") + "-01";
+          res = await rpc("create_period", { p_label: label, p_starts_on: starts, p_title: $("fTitle").value, p_verse: $("fVerse").value });
+        }
+      } catch (e) {}
+      $("formSave").disabled = false;
+      if (!res || !res.ok) { toast("저장하지 못했어요. 다시 시도해 주세요."); return; }
+      toast(editId ? "저장했어요" : "새 기간을 만들었어요");
+      try { const l = await rpc("list_periods"); if (l.ok) periods = l.periods || []; } catch (e) {}
+      go({ v: "period", id: editId || res.id }, true);
+    });
+
+    $("enter").addEventListener("click", () => { pw = $("pw").value.trim(); if (pw) enter(); });
     $("pw").addEventListener("keydown", e => { if (e.key === "Enter") $("enter").click(); });
     $("logout").addEventListener("click", () => { try { localStorage.removeItem(PW_KEY); } catch (e) {} pw = ""; $("pw").value = ""; showLogin(""); });
+    $("newPeriodBtn").addEventListener("click", () => go({ v: "form" }));
+    $("editPeriod").addEventListener("click", () => go({ v: "form", id: current && current.id }));
+    $("formCancel").addEventListener("click", () => history.back());
+    $("backToTl").addEventListener("click", () => { go({ v: "timeline" }); showTimeline(true); });
 
-    if (pw) load(); else showLogin(API_URL ? "" : "아직 데이터베이스가 연결되지 않았어요.");
+    if (pw) enter(); else showLogin("");
   </script>
 </body>
 </html>
