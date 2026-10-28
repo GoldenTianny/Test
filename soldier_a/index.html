@@ -146,7 +146,8 @@
     .pv-bar span { display: flex; gap: 6px; align-items: center; }
     .pv-bar button { font-size: 12px; padding: 6px 10px; }
     .pv-bar button.on { background: #333; color: #fff; }
-    .pv-tip { font-size: 12px; color: #666; text-align: center; padding: 8px 12px 0; }
+    .pv-tip { font-size: 12px; color: #666; text-align: center; padding: 8px 12px 0; line-height: 1.6; }
+    .doc:focus { outline: 2px dashed #f0b400; outline-offset: -6px; }
     .doc {
       background: #fff; width: min(148mm, 100%); margin: 12px auto 0; padding: 18mm 15mm 16mm; box-shadow: 0 2px 10px rgba(0,0,0,.15);
       color: #000; font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; font-size: 11pt; line-height: 1.95;
@@ -165,7 +166,7 @@
       body { padding: 0; max-width: none; }
       .pv { position: static; background: #fff; overflow: visible; padding: 0; }
       .no-print { display: none !important; }
-      .doc { width: auto; margin: 0; padding: 0; box-shadow: none; }
+      .doc { width: auto; margin: 0; padding: 0; box-shadow: none; outline: none !important; caret-color: transparent; }
     }
   </style>
 </head>
@@ -243,10 +244,10 @@
   <div class="pv hide" id="pv">
     <div class="pv-bar no-print">
       <span>팀 <button data-t="A">A팀</button><button data-t="B">B팀</button></span>
-      <span><button class="primary" id="pvPrint">PDF로 저장 / 인쇄</button><button id="pvClose">닫기</button></span>
+      <span><button id="pvReset">원래대로</button><button class="primary" id="pvPrint">PDF로 저장 / 인쇄</button><button id="pvClose">닫기</button></span>
     </div>
-    <div class="pv-tip no-print">「PDF로 저장 / 인쇄」 → 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 저장돼요.</div>
-    <article class="doc" id="doc"></article>
+    <div class="pv-tip no-print">✏️ 아래 내용을 눌러서 <b>바로 고칠 수 있어요</b> (PDF에만 반영, 기도제목 원본은 그대로)<br>「PDF로 저장 / 인쇄」 → 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 저장돼요.</div>
+    <article class="doc" id="doc" contenteditable="true" spellcheck="false"></article>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -586,14 +587,23 @@
         if (m) { ref = "(" + m[1] + ")"; text = text.slice(m[0].length); }
         h += '<section class="d-sec"><h2>' + esc(p.name) + (ref ? '<span class="d-ref">' + esc(ref) + '</span>' : '') + '</h2>' + bodyHtml(text) + '</section>';
       });
-      $("doc").innerHTML = h;
+      $("doc").innerHTML = pvEdits[pvKey(t)] || h;
+      pvTeam = t;
       document.title = teamTitle(current.title || "기도제목", t);
     }
+    // PDF 화면에서 고친 내용(기간·팀별로 기억, 새로고침하면 사라짐)
+    const pvEdits = {}; let pvTeam = "A";
+    const pvKey = t => (current && (current.id ?? current.label)) + ":" + t;
+    $("doc").addEventListener("input", () => { pvEdits[pvKey(pvTeam)] = $("doc").innerHTML; });
+    $("pvReset").addEventListener("click", () => {
+      if (!pvEdits[pvKey(pvTeam)] || !confirm("고친 내용을 지우고 원래대로 돌릴까요?")) return;
+      delete pvEdits[pvKey(pvTeam)]; buildDoc(pvTeam);
+    });
     function openPdf() { buildDoc(tab === "B" ? "B" : "A"); $("pv").classList.remove("hide"); $("pv").scrollTop = 0; }
     function closePdf() { $("pv").classList.add("hide"); document.title = "솔져팀"; }
     $("pdfBtn").addEventListener("click", openPdf);
     $("pvClose").addEventListener("click", closePdf);
-    $("pvPrint").addEventListener("click", () => window.print());
+    $("pvPrint").addEventListener("click", () => { $("doc").blur(); window.print(); });
     document.querySelector(".pv-bar").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (b) buildDoc(b.dataset.t); });
 
     if (pw) enter(); else showLogin("");
