@@ -138,6 +138,35 @@
       opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; text-align: center;
     }
     .toast.show { opacity: 1; }
+
+    /* PDF(인쇄용) 화면 */
+    .pv { position: fixed; inset: 0; background: #f2f2f2; overflow-y: auto; z-index: 20; padding: 0 0 40px; }
+    .pv-bar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      background: #fff; border-bottom: 2px solid #333; padding: 10px 12px; font-size: 13px; font-weight: 700; z-index: 1; }
+    .pv-bar span { display: flex; gap: 6px; align-items: center; }
+    .pv-bar button { font-size: 12px; padding: 6px 10px; }
+    .pv-bar button.on { background: #333; color: #fff; }
+    .pv-tip { font-size: 12px; color: #666; text-align: center; padding: 8px 12px 0; }
+    .doc {
+      background: #fff; width: min(210mm, 100%); margin: 12px auto 0; padding: 18mm 16mm; box-shadow: 0 2px 10px rgba(0,0,0,.15);
+      color: #000; font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; font-size: 10.5pt; line-height: 1.75;
+    }
+    .doc h1 { text-align: center; font-size: 16pt; margin: 0 0 14px; letter-spacing: .5px; }
+    .doc .d-verse { margin: 0 0 18px; text-align: justify; }
+    .doc .d-sec { margin: 0 0 18px; break-inside: avoid-page; }
+    .doc h2 { font-size: 11pt; margin: 0 0 4px; }
+    .doc .d-num { padding-left: 1.6em; text-indent: -1.6em; text-align: justify; }
+    .doc .d-sub { padding-left: 2.4em; text-indent: -0.8em; text-align: justify; }
+    .doc .d-line { text-align: justify; }
+    .doc .d-ref { color: #333; }
+    @page { size: A4; margin: 15mm 14mm 16mm; @bottom-center { content: "-" counter(page) "-"; font-size: 9pt; } }
+    @media print {
+      body > *:not(.pv) { display: none !important; }
+      body { padding: 0; max-width: none; }
+      .pv { position: static; background: #fff; overflow: visible; padding: 0; }
+      .no-print { display: none !important; }
+      .doc { width: auto; margin: 0; padding: 0; box-shadow: none; }
+    }
   </style>
 </head>
 <body>
@@ -196,7 +225,7 @@
   <section class="hide" id="main">
     <header>
       <h1 id="title">기도제목</h1>
-      <div class="btns"><button id="editPeriod">정보 수정</button><button id="backToTl">목록</button></div>
+      <div class="btns"><button id="pdfBtn" class="hide">PDF</button><button id="editPeriod">정보 수정</button><button id="backToTl">목록</button></div>
     </header>
     <div class="period-label" id="periodLabel"></div>
     <div class="readonly hide" id="readonlyNote">🔒 지난 기간이라 읽기만 할 수 있어요.</div>
@@ -209,6 +238,16 @@
     <div id="list"><div class="status">불러오는 중…</div></div>
     <button class="add-person hide" id="addPerson">+ 사람 추가 (관리자)</button>
   </section>
+
+  <!-- PDF(인쇄용) 화면: 관리자 -->
+  <div class="pv hide" id="pv">
+    <div class="pv-bar no-print">
+      <span>팀 <button data-t="A">A팀</button><button data-t="B">B팀</button></span>
+      <span><button class="primary" id="pvPrint">PDF로 저장 / 인쇄</button><button id="pvClose">닫기</button></span>
+    </div>
+    <div class="pv-tip no-print">「PDF로 저장 / 인쇄」 → 프린터 대신 <b>PDF로 저장</b>을 고르면 파일로 저장돼요.</div>
+    <article class="doc" id="doc"></article>
+  </div>
 
   <div class="toast" id="toast"></div>
 
@@ -315,6 +354,7 @@
       $("editPeriod").classList.toggle("hide", !editable);
       $("readonlyNote").classList.toggle("hide", editable);
       $("addPerson").classList.toggle("hide", !isAdmin);
+      $("pdfBtn").classList.toggle("hide", !isAdmin);
       $("periodLabel").textContent = res.label;
       $("title").textContent = res.title || "기도제목";
       $("verse").textContent = res.verse || "";
@@ -519,6 +559,44 @@
       const b = e.target.closest("button"); if (!b) return;
       tab = b.dataset.team; store.set(TAB_KEY, tab); render();
     });
+    // ---------- PDF(인쇄용) 만들기: 관리자 ----------
+    const esc = t => String(t).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    function bodyHtml(text) {
+      return (text || "").split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+        if (/^\(?\d+[.)]\s*/.test(l)) return '<div class="d-num">' + esc(l) + '</div>';
+        if (/^-/.test(l)) return '<div class="d-sub">' + esc(l) + '</div>';
+        return '<div class="d-line">' + esc(l) + '</div>';
+      }).join("");
+    }
+    function teamTitle(title, t) {
+      if (/SOLDIER(-[AB])?\s*Team/i.test(title)) return title.replace(/SOLDIER(-[AB])?\s*Team/i, "SOLDIER-" + t + " Team");
+      if (/SOLDIER(-[AB])?/i.test(title)) return title.replace(/SOLDIER(-[AB])?/i, "SOLDIER-" + t);
+      return "SOLDIER-" + t + " " + title;
+    }
+    function buildDoc(t) {
+      [...document.querySelectorAll(".pv-bar button[data-t]")].forEach(b => b.classList.toggle("on", b.dataset.t === t));
+      const common = current.people.find(p => p.team === "C");
+      const ppl = current.people.filter(p => p.team === t);
+      let h = '<h1>' + esc(teamTitle(current.title || "", t)) + '</h1>';
+      if (current.verse) h += '<div class="d-verse">' + esc(current.verse) + '</div>';
+      if (common && common.text) h += '<section class="d-sec"><h2>전체</h2>' + bodyHtml(common.text) + '</section>';
+      ppl.forEach(p => {
+        // 첫 줄이 "(말씀)" 이면 이름 옆으로 올려요 (원래 문서 모양처럼)
+        let text = p.text || "", ref = "";
+        const m = text.match(/^\(([^)\n]+)\)\s*\n?/);
+        if (m) { ref = "(" + m[1] + ")"; text = text.slice(m[0].length); }
+        h += '<section class="d-sec"><h2>' + esc(p.name) + (ref ? '<span class="d-ref">' + esc(ref) + '</span>' : '') + '</h2>' + bodyHtml(text) + '</section>';
+      });
+      $("doc").innerHTML = h;
+      document.title = teamTitle(current.title || "기도제목", t);
+    }
+    function openPdf() { buildDoc(tab === "B" ? "B" : "A"); $("pv").classList.remove("hide"); $("pv").scrollTop = 0; }
+    function closePdf() { $("pv").classList.add("hide"); document.title = "솔져팀"; }
+    $("pdfBtn").addEventListener("click", openPdf);
+    $("pvClose").addEventListener("click", closePdf);
+    $("pvPrint").addEventListener("click", () => window.print());
+    document.querySelector(".pv-bar").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (b) buildDoc(b.dataset.t); });
+
     if (pw) enter(); else showLogin("");
   </script>
 </body>
