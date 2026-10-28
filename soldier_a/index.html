@@ -104,22 +104,32 @@
       return (d.getMonth() + 1) + "/" + d.getDate() + " 수정";
     };
 
+    // 구글 응답 받기: 먼저 일반 방식(fetch), 막히면 <script> 방식(JSONP)으로 다시 시도해요.
+    function jsonp(url) {
+      return new Promise((resolve, reject) => {
+        const cb = "__sa" + Date.now() + Math.floor(Math.random() * 1000);
+        const sc = document.createElement("script");
+        const done = () => { delete window[cb]; sc.remove(); clearTimeout(t); };
+        const t = setTimeout(() => { done(); reject(new Error("timeout")); }, 20000);
+        window[cb] = data => { done(); resolve(data); };
+        sc.onerror = () => { done(); reject(new Error("script")); };
+        sc.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
+        document.head.appendChild(sc);
+      });
+    }
+    async function getData() {
+      const url = API_URL + "?pw=" + encodeURIComponent(pw);
+      try { const r = await fetch(url); return JSON.parse(await r.text()); }
+      catch (e) { return await jsonp(url); }
+    }
+
     async function load() {
       if (!API_URL) { showLogin("아직 구글 시트가 연결되지 않았어요."); return; }
       $("enter").disabled = true; $("enter").textContent = "확인 중…";
-      let res = null, why = "";
-      try {
-        const r = await fetch(API_URL + "?pw=" + encodeURIComponent(pw));
-        const raw = await r.text();
-        try { res = JSON.parse(raw); }
-        catch (e) {
-          why = /accounts\.google|로그인|Sign in/i.test(raw) ? "웹 앱 액세스 권한이 '모든 사용자'가 아니에요."
-              : /TypeError|null|오류|Error/i.test(raw) ? "시트 준비가 안 됐어요. Apps Script에서 setup을 실행했는지 확인해 주세요."
-              : "구글 응답을 읽지 못했어요 (HTTP " + r.status + ").";
-        }
-      } catch (e) { why = "구글 응답을 받지 못했어요. 아래 「직접 확인」을 눌러 어떤 화면이 나오는지 봐 주세요."; }
+      let res = null;
+      try { res = await getData(); } catch (e) {}
       $("enter").disabled = false; $("enter").textContent = "들어가기";
-      if (!res) { showLogin(why || "불러오지 못했어요."); return; }
+      if (!res) { showLogin("구글 응답을 받지 못했어요. 아래 「직접 확인」을 눌러 어떤 화면이 나오는지 봐 주세요."); return; }
       if (!res.ok) { try { localStorage.removeItem(PW_KEY); } catch (e) {} showLogin(pw ? "비밀번호가 맞지 않아요." : ""); return; }
       try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
       $("login").classList.add("hide");
@@ -127,6 +137,22 @@
       $("title").textContent = res.title || "기도제목";
       $("verse").textContent = res.verse || "";
       render(res.people || []);
+    }
+
+    // 저장: 일반 방식이 막히면, 응답 없이 보내고(no-cors) 다시 읽어서 저장됐는지 확인해요.
+    async function saveText(name, text) {
+      const body = JSON.stringify({ pw, name, text });
+      try {
+        const r = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body });
+        return JSON.parse(await r.text());
+      } catch (e) {
+        try {
+          await fetch(API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body });
+          const d = await getData();
+          const me = (d.people || []).find(x => x.name === name);
+          return me && me.text === text ? { ok: true, updated: me.updated } : null;
+        } catch (e2) { return null; }
+      }
     }
 
     function showLogin(msg) {
@@ -177,11 +203,7 @@
       acts.children[0].addEventListener("click", close);
       acts.children[1].addEventListener("click", async () => {
         acts.children[1].disabled = true; acts.children[1].textContent = "저장 중…";
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ pw, name: p.name, text: ta.value })
-        }).then(r => r.json()).catch(() => null);
+        const res = await saveText(p.name, ta.value);
         if (res && res.ok) {
           p.text = ta.value; p.updated = res.updated;
           text.textContent = p.text;
