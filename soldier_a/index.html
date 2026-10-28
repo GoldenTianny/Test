@@ -46,6 +46,7 @@
     }
     .tl-item.now::before { background: #333; box-shadow: 0 0 0 4px #e6e6e6; }
     .tl-label { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 6px; }
+    .tl-item:not(.now) .tl-label::after { content: "🔒"; margin-left: 4px; font-size: 11px; }
     .tl-item.now .tl-label::after { content: "지금"; margin-left: 6px; font-size: 11px; background: #333; color: #fff; padding: 1px 7px; border-radius: 10px; }
     .tl-card { border: 1px solid #333; border-radius: 8px; padding: 12px 14px; background: #fff; }
     .tl-card:active { background: #f3f3f3; }
@@ -57,6 +58,7 @@
 
     /* 기간 상세 */
     .period-label { font-size: 13px; font-weight: 700; color: #555; padding-top: 14px; }
+    .readonly { font-size: 12px; color: #888; margin-top: 4px; }
     .verse { font-size: 14px; color: #555; line-height: 1.7; padding: 10px 2px 12px; border-bottom: 1px solid #ddd; white-space: pre-wrap; }
     .jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0; }
     .jump button { font-size: 13px; padding: 5px 10px; font-weight: 400; }
@@ -139,6 +141,7 @@
       <div class="btns"><button id="editPeriod">정보 수정</button><button id="backToTl">목록</button></div>
     </header>
     <div class="period-label" id="periodLabel"></div>
+    <div class="readonly hide" id="readonlyNote">🔒 지난 기간이라 읽기만 할 수 있어요.</div>
     <div class="verse" id="verse"></div>
     <div class="jump" id="jump"></div>
     <div id="list"><div class="status">불러오는 중…</div></div>
@@ -246,6 +249,9 @@
       try { res = await rpc("get_period", { pid: id }); } catch (e) {}
       if (!res || !res.ok) { $("list").innerHTML = '<div class="status">불러오지 못했어요.</div>'; return; }
       current = res;
+      const editable = res.editable !== false;
+      $("editPeriod").classList.toggle("hide", !editable);
+      $("readonlyNote").classList.toggle("hide", editable);
       $("periodLabel").textContent = res.label;
       $("title").textContent = res.title || "기도제목";
       $("verse").textContent = res.verse || "";
@@ -270,7 +276,9 @@
         box.querySelector("b").textContent = p.name;
         box.querySelector("small").textContent = p.updated ? md(p.updated) + " 수정" : "";
         box.querySelector(".p-text").textContent = p.text;
-        box.querySelector("button").addEventListener("click", () => edit(box, p));
+        const btn = box.querySelector(".p-head button");
+        if (current && current.editable === false) btn.remove();
+        else btn.addEventListener("click", () => edit(box, p));
         list.appendChild(box);
       });
     }
@@ -299,7 +307,7 @@
           close(); toast("저장했어요");
         } else {
           acts.children[1].disabled = false; acts.children[1].textContent = "저장";
-          toast("저장하지 못했어요. 다시 시도해 주세요.");
+          toast(res && res.error === "locked" ? "지난 기간은 수정할 수 없어요." : "저장하지 못했어요. 다시 시도해 주세요.");
         }
       });
     }
