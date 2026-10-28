@@ -86,7 +86,7 @@
   <script>
     // Supabase 프로젝트 주소와 공개(anon) 키. 공개 키라도 팀 비밀번호 없이는 아무것도 읽거나 쓸 수 없어요.
     const SUPABASE_URL = "https://rkrzgrdeqyvuwdbhiumz.supabase.co";
-    const SUPABASE_KEY = "";
+    const SUPABASE_KEY = "sb_publishable_qp-wPae73D9GOC7TZ31Bnw_iHYuHs1G";
     const API_URL = SUPABASE_URL;
 
     const PW_KEY = "soldier_a.pw";
@@ -107,7 +107,9 @@
     async function rpc(fn, args) {
       const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + fn, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
+        // 새 형식 키(sb_publishable_…)는 apikey 헤더만, 예전 anon 키(eyJ…)는 Authorization 도 함께 보내요.
+        headers: Object.assign({ "Content-Type": "application/json", apikey: SUPABASE_KEY },
+          SUPABASE_KEY.startsWith("sb_") ? {} : { Authorization: "Bearer " + SUPABASE_KEY }),
         body: JSON.stringify(args)
       });
       if (!r.ok) throw new Error("HTTP " + r.status);
