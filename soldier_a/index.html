@@ -104,8 +104,20 @@
 
     async function load() {
       if (!API_URL) { showLogin("아직 구글 시트가 연결되지 않았어요."); return; }
-      const res = await fetch(API_URL + "?pw=" + encodeURIComponent(pw)).then(r => r.json()).catch(() => null);
-      if (!res) { showLogin("불러오지 못했어요. 잠시 후 다시 시도해 주세요."); return; }
+      $("enter").disabled = true; $("enter").textContent = "확인 중…";
+      let res = null, why = "";
+      try {
+        const r = await fetch(API_URL + "?pw=" + encodeURIComponent(pw));
+        const raw = await r.text();
+        try { res = JSON.parse(raw); }
+        catch (e) {
+          why = /accounts\.google|로그인|Sign in/i.test(raw) ? "웹 앱 액세스 권한이 '모든 사용자'가 아니에요."
+              : /TypeError|null|오류|Error/i.test(raw) ? "시트 준비가 안 됐어요. Apps Script에서 setup을 실행했는지 확인해 주세요."
+              : "구글 응답을 읽지 못했어요 (HTTP " + r.status + ").";
+        }
+      } catch (e) { why = "구글 서버에 연결하지 못했어요. 인터넷 연결이나 웹 앱 주소를 확인해 주세요."; }
+      $("enter").disabled = false; $("enter").textContent = "들어가기";
+      if (!res) { showLogin(why || "불러오지 못했어요."); return; }
       if (!res.ok) { try { localStorage.removeItem(PW_KEY); } catch (e) {} showLogin(pw ? "비밀번호가 맞지 않아요." : ""); return; }
       try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
       $("login").classList.add("hide");
