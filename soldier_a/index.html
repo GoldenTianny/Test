@@ -47,6 +47,9 @@
     .tl-item.now::before { background: #333; box-shadow: 0 0 0 4px #e6e6e6; }
     .tl-label { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 6px; }
     .tl-item:not(.now) .tl-label::after { content: "🔒"; margin-left: 4px; font-size: 11px; }
+    body.admin .tl-item:not(.now) .tl-label::after { content: ""; }
+    .admin-badge { display: none; font-size: 11px; vertical-align: middle; background: #d33; color: #fff; padding: 2px 8px; border-radius: 10px; margin-left: 4px; }
+    body.admin .admin-badge { display: inline-block; }
     .tl-item.now .tl-label::after { content: "지금"; margin-left: 6px; font-size: 11px; background: #333; color: #fff; padding: 1px 7px; border-radius: 10px; }
     .tl-card { border: 1px solid #333; border-radius: 8px; padding: 12px 14px; background: #fff; }
     .tl-card:active { background: #f3f3f3; }
@@ -99,7 +102,7 @@
   <!-- 팀 비밀번호 -->
   <section class="login" id="login">
     <h1>SOLDIER-A</h1>
-    <p>팀 비밀번호를 입력하세요.</p>
+    <p>팀 비밀번호(또는 관리자 비밀번호)를 입력하세요.</p>
     <input type="password" id="pw" autocomplete="current-password" placeholder="팀 비밀번호">
     <button class="primary" id="enter">들어가기</button>
     <div class="err" id="err"></div>
@@ -108,7 +111,7 @@
   <!-- 타임라인 -->
   <section class="hide" id="timeline">
     <header>
-      <h1>SOLDIER-A 기도제목</h1>
+      <h1>SOLDIER-A 기도제목 <span class="admin-badge">관리자</span></h1>
       <div class="btns"><button id="newPeriodBtn">+ 새 기간</button><button id="logout">나가기</button></div>
     </header>
     <div class="tl" id="tl"><div class="status">불러오는 중…</div></div>
@@ -160,6 +163,7 @@
     try { pw = localStorage.getItem(PW_KEY) || ""; } catch (e) {}
     let periods = [];
     let current = null;   // 지금 열려 있는 기간
+    let isAdmin = false;  // 관리자 비밀번호로 들어왔는지 (관리자는 지난 기간도 수정 가능)
 
     function toast(msg) {
       $("toast").textContent = msg; $("toast").classList.add("show");
@@ -212,6 +216,8 @@
       if (!res.ok) { try { localStorage.removeItem(PW_KEY); } catch (e) {} showLogin(pw ? "비밀번호가 맞지 않아요." : ""); return; }
       try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
       periods = res.periods || [];
+      isAdmin = !!res.admin;
+      document.body.classList.toggle("admin", isAdmin);
       go({ v: "timeline" }, true);
     }
     function showLogin(msg) { show("login"); $("err").textContent = msg || ""; }
@@ -367,7 +373,7 @@
 
     $("enter").addEventListener("click", () => { pw = $("pw").value.trim(); if (pw) enter(); });
     $("pw").addEventListener("keydown", e => { if (e.key === "Enter") $("enter").click(); });
-    $("logout").addEventListener("click", () => { try { localStorage.removeItem(PW_KEY); } catch (e) {} pw = ""; $("pw").value = ""; showLogin(""); });
+    $("logout").addEventListener("click", () => { try { localStorage.removeItem(PW_KEY); } catch (e) {} pw = ""; isAdmin = false; document.body.classList.remove("admin"); $("pw").value = ""; showLogin(""); });
     $("newPeriodBtn").addEventListener("click", () => go({ v: "form" }));
     $("editPeriod").addEventListener("click", () => go({ v: "form", id: current && current.id }));
     $("formCancel").addEventListener("click", () => history.back());
