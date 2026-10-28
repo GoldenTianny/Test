@@ -27,6 +27,7 @@
     .login p { color: #777; font-size: 14px; margin: 0 0 10px; }
     .login input { font-size: 16px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
     .err { color: #d33; font-size: 13px; min-height: 18px; }
+    .check { font-size: 14px; color: #118ab2; }
 
     /* 본문 */
     header { padding: 22px 0 10px; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
@@ -68,6 +69,7 @@
     <input type="password" id="pw" autocomplete="current-password" placeholder="팀 비밀번호">
     <button class="primary" id="enter">들어가기</button>
     <div class="err" id="err"></div>
+    <a class="check hide" id="check" target="_blank" rel="noopener">직접 확인 ↗</a>
   </section>
 
   <!-- 기도제목 -->
@@ -115,7 +117,7 @@
               : /TypeError|null|오류|Error/i.test(raw) ? "시트 준비가 안 됐어요. Apps Script에서 setup을 실행했는지 확인해 주세요."
               : "구글 응답을 읽지 못했어요 (HTTP " + r.status + ").";
         }
-      } catch (e) { why = "구글 서버에 연결하지 못했어요. 인터넷 연결이나 웹 앱 주소를 확인해 주세요."; }
+      } catch (e) { why = "구글 응답을 받지 못했어요. 아래 「직접 확인」을 눌러 어떤 화면이 나오는지 봐 주세요."; }
       $("enter").disabled = false; $("enter").textContent = "들어가기";
       if (!res) { showLogin(why || "불러오지 못했어요."); return; }
       if (!res.ok) { try { localStorage.removeItem(PW_KEY); } catch (e) {} showLogin(pw ? "비밀번호가 맞지 않아요." : ""); return; }
@@ -131,6 +133,9 @@
       $("main").classList.add("hide");
       $("login").classList.remove("hide");
       $("err").textContent = msg || "";
+      const showCheck = !!msg && API_URL && pw;
+      $("check").classList.toggle("hide", !showCheck);
+      if (showCheck) $("check").href = API_URL + "?pw=" + encodeURIComponent(pw);
     }
 
     function render(people) {
