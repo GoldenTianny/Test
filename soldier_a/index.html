@@ -127,7 +127,7 @@
     .toast {
       position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
       background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px;
-      opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap;
+      opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; text-align: center;
     }
     .toast.show { opacity: 1; }
   </style>
@@ -225,7 +225,7 @@
 
     function toast(msg) {
       $("toast").textContent = msg; $("toast").classList.add("show");
-      setTimeout(() => $("toast").classList.remove("show"), 1800);
+      setTimeout(() => $("toast").classList.remove("show"), 2600);
     }
     const md = iso => { if (!iso) return ""; const d = new Date(iso); return (d.getMonth() + 1) + "/" + d.getDate(); };
 
@@ -402,9 +402,14 @@
     }
 
     async function confirmPrayer(p, on, box, paint) {
-      let res = null;
-      try { res = await rpc("confirm_prayer", { pid: current.id, p_name: p.name, p_on: on }); } catch (e) {}
-      if (!res || !res.ok) { toast(res && res.error === "locked" ? "지난 기간은 수정할 수 없어요." : "처리하지 못했어요. 다시 시도해 주세요."); return; }
+      let res = null, why = "";
+      try { res = await rpc("confirm_prayer", { pid: current.id, p_name: p.name, p_on: on }); } catch (e) { why = e.message; }
+      if (!res || !res.ok) {
+        toast(res && res.error === "locked" ? "지난 기간은 수정할 수 없어요."
+            : /404|confirm_prayer|function/i.test(why) ? "DB에 확인 기능이 아직 없어요 (확인 기능 SQL 실행 필요)"
+            : "처리하지 못했어요. 다시 시도해 주세요.");
+        return;
+      }
       p.confirmed = res.confirmed;
       headHtml(box, p); paint(); updateProgress();
       const j = [...$("jump").children].find(b => b.textContent === p.name);
