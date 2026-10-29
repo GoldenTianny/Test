@@ -262,6 +262,30 @@
       font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
     }
     .game-btn:active { background: #eee; }
+    .game-btn + .game-btn { margin-top: 10px; }
+
+    /* 암송시험 */
+    .x-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border: 1px solid #333; padding: 10px 12px; margin-bottom: 8px; }
+    .x-row b { font-size: 15px; }
+    .x-row small { display: block; font-size: 12px; color: #777; font-weight: 400; }
+    .x-step { display: flex; align-items: center; gap: 6px; }
+    .x-step button { width: 36px; height: 36px; border: 1px solid #333; background: #fff; font-size: 20px; font-family: inherit; border-radius: 6px; cursor: pointer; }
+    .x-step button:active { background: #eee; }
+    .x-step span { min-width: 26px; text-align: center; font-size: 18px; font-weight: 700; }
+    .x-total { text-align: center; font-size: 15px; margin: 14px 0; }
+    .x-total b { font-size: 22px; }
+    .x-go { display: block; width: 100%; padding: 14px; border: none; background: #333; color: #fff; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .x-go:disabled { opacity: .35; }
+    .x-q { border-bottom: 1px solid #ddd; padding: 12px 2px; cursor: pointer; }
+    .x-q .n { display: inline-block; min-width: 28px; font-weight: 700; }
+    .x-q .m { font-size: 12px; color: #777; margin-right: 6px; }
+    .x-q .r { font-size: 17px; font-weight: 700; }
+    .x-q .a { display: none; margin: 8px 0 0 28px; font-size: 15px; line-height: 1.7; color: #2a7; }
+    .x-q .a i { display: block; font-style: normal; font-size: 13px; color: #555; margin-bottom: 2px; }
+    .x-q.open .a { display: block; }
+    .x-bar { display: flex; gap: 8px; margin: 4px 0 10px; }
+    .x-bar button { flex: 1; padding: 10px 4px; border: 1px solid #333; background: #fff; font-family: inherit; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+    .x-bar button.on { background: #333; color: #fff; }
 
     /* 게임 */
     .g-list { display: flex; flex-direction: column; gap: 10px; }
@@ -582,6 +606,7 @@
     </div>
     <div class="menu-list" id="menuList"></div>
     <button class="game-btn" id="openGame">🎮 게임</button>
+    <button class="game-btn" id="openExam">📝 암송시험</button>
 
     <!-- 힌트: 성경 66권 › 장별로 내가 외운 구절 보기 -->
     <div class="hint-panel" id="menuHintPanel">
@@ -592,6 +617,16 @@
       </div>
       <div id="menuHintBody"></div>
     </div>
+  </div>
+
+  <!-- 암송시험 -->
+  <div class="screen" id="exam">
+    <div class="screen-head">
+      <button class="home" id="examBack">목록</button>
+      <div class="screen-title">암송시험</div>
+      <span class="screen-spacer"></span>
+    </div>
+    <div class="screen-body" id="examBody"></div>
   </div>
 
   <!-- 게임 (준비 중) -->
@@ -733,7 +768,7 @@
     SETS.forEach((set, si) => set.verses.forEach((v, vi) => { v.id = si + ":" + vi; }));
 
     // ---------- 화면 전환 ----------
-    const SCREENS = ["menu", "install", "game", "wallet", "picker", "app"];
+    const SCREENS = ["menu", "install", "game", "exam", "wallet", "picker", "app"];
     function show(id) {
       track("screen_view", { screen_name: id });
       SCREENS.forEach(k => {
@@ -766,6 +801,7 @@
         }
         else if (state.screen === "install") show("install");
         else if (state.screen === "game") { if (state.g) renderRange(state.g); else renderGameHome(); show("game"); }
+        else if (state.screen === "exam") { if (state.q && exam) renderExam(); else renderExamSetup(); show("exam"); }
         else if (state.screen === "wallet") openWallet();
         else if (state.screen === "picker") { pickSlot = state.slot; pickSet = state.set; renderPicker(); show("picker"); }
         else if (state.screen === "app") { if (deck) { show("app"); render(); } else showMenu(); }
@@ -1735,6 +1771,85 @@
         finish(false);
       });
     }
+
+    // ---------- 암송시험 ----------
+    // 범위별로 몇 문제씩 낼지 정해서, 장절만 보여주는 시험지를 만들어요. 문제를 누르면 정답이 보여요.
+    const EXAM_KEY = "exam.counts";
+    const EXAM_GROUPS = [
+      { key: "base", label: "5확신 + 8구절", majors: ["5확신", "8구절"], def: 1 },
+      { key: "60", label: "60구절", majors: ["60구절"], def: 2 },
+      { key: "180", label: "180구절", majors: ["180구절"], def: 6 },
+      { key: "242", label: "242구절", majors: ["242구절"], def: 8 },
+      { key: "praise", label: "찬양 60구절", majors: ["찬양 60구절"], def: 3 },
+      { key: "promise", label: "약속 60구절", majors: ["약속 60구절"], def: 0 },
+      { key: "train", label: "훈련 60구절", majors: ["훈련 60구절"], def: 0 },
+      { key: "evang", label: "전도 60구절", majors: ["전도 60구절"], def: 0 },
+      { key: "char", label: "인격 60구절", majors: ["인격 60구절"], def: 0 },
+    ];
+    EXAM_GROUPS.forEach(g => {
+      g.list = SETS.filter(x => g.majors.includes(x.major)).flatMap(x => x.verses.map(v => ({ v, major: x.major, minor: x.minor })));
+    });
+    let examCounts = {};
+    try { examCounts = JSON.parse(localStorage.getItem(EXAM_KEY) || "{}"); } catch (e) {}
+    EXAM_GROUPS.forEach(g => { if (typeof examCounts[g.key] !== "number") examCounts[g.key] = g.def; });
+    let exam = null;   // { qs: [{ v, major, minor }], all: 정답 모두 보기 }
+
+    function renderExamSetup() {
+      const body = $("examBody");
+      body.innerHTML = '<div class="g-sec">범위별 문제 수</div>';
+      const total = () => EXAM_GROUPS.reduce((n, g) => n + examCounts[g.key], 0);
+      EXAM_GROUPS.forEach(g => {
+        const row = document.createElement("div");
+        row.className = "x-row";
+        row.innerHTML = '<span><b>' + g.label + '</b><small>' + g.list.length + '구절</small></span>' +
+          '<span class="x-step"><button data-d="-1">−</button><span></span><button data-d="1">+</button></span>';
+        const num = row.querySelector(".x-step span");
+        num.textContent = examCounts[g.key];
+        row.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+          examCounts[g.key] = Math.max(0, Math.min(g.list.length, examCounts[g.key] + Number(b.dataset.d)));
+          num.textContent = examCounts[g.key];
+          try { localStorage.setItem(EXAM_KEY, JSON.stringify(examCounts)); } catch (e) {}
+          sum.innerHTML = '총 <b>' + total() + '</b>문제'; go.disabled = !total();
+        }));
+        body.appendChild(row);
+      });
+      const sum = document.createElement("div");
+      sum.className = "x-total"; sum.innerHTML = '총 <b>' + total() + '</b>문제';
+      const go = document.createElement("button");
+      go.className = "x-go"; go.textContent = "시험지 만들기"; go.disabled = !total();
+      go.addEventListener("click", () => { makeExam(); pushNav({ screen: "exam", q: 1 }); renderExam(); });
+      body.appendChild(sum); body.appendChild(go);
+    }
+    function makeExam() {
+      const qs = [];
+      EXAM_GROUPS.forEach(g => qs.push(...shuffle([...g.list]).slice(0, examCounts[g.key])));
+      exam = { qs, all: false };
+      track("exam_start", { count: qs.length });
+    }
+    function renderExam() {
+      const body = $("examBody");
+      body.innerHTML = '<div class="x-bar"><button id="xAll"></button><button id="xNew">새로 뽑기</button><button id="xSet">범위 바꾸기</button></div>' +
+        '<div class="g-tip">문제를 누르면 정답이 보여요</div>';
+      const btnAll = $("xAll");
+      btnAll.textContent = exam.all ? "정답 가리기" : "정답 모두 보기";
+      btnAll.classList.toggle("on", exam.all);
+      exam.qs.forEach((q, i) => {
+        const d = document.createElement("div");
+        d.className = "x-q" + (exam.all ? " open" : "");
+        d.innerHTML = '<span class="n">' + (i + 1) + '.</span><span class="m">[' + q.major + ']</span><span class="r">' + q.v.ref + '</span>' +
+          '<div class="a"><i></i><span></span></div>';
+        d.querySelector(".a i").textContent = q.v.name.replace(/^\d+\.\s*/, "") + " · " + q.minor;
+        d.querySelector(".a span").textContent = q.v.text;
+        d.addEventListener("click", () => d.classList.toggle("open"));
+        body.appendChild(d);
+      });
+      btnAll.addEventListener("click", () => { exam.all = !exam.all; renderExam(); });
+      $("xNew").addEventListener("click", () => { makeExam(); renderExam(); $("examBody").scrollTop = 0; });
+      $("xSet").addEventListener("click", () => { pushNav({ screen: "exam" }); renderExamSetup(); });
+    }
+    function openExam() { pushNav({ screen: "exam" }); renderExamSetup(); show("exam"); }
+    $("openExam").addEventListener("click", openExam);
+    $("examBack").addEventListener("click", () => { pushNav({ screen: "menu" }); showMenu(); });
 
     function openGame() { pushNav({ screen: "game" }); renderGameHome(); show("game"); }
     $("openGame").addEventListener("click", openGame);
