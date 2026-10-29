@@ -404,7 +404,7 @@
           j.textContent = p.name;
           if (p.confirmed) j.classList.add("done");
           j.addEventListener("click", () => $(id).scrollIntoView({ behavior: "smooth" }));
-          jump.appendChild(j);
+          if (!isGroup(p)) jump.appendChild(j);   // 공통 기도제목은 확인 대상이 아니라 이름 목록에서 뺌
 
           const box = document.createElement("div");
           box.className = "person" + (p.team === "C" ? " common" : ""); box.id = id;
