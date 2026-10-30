@@ -1974,18 +1974,31 @@
       });
     }
     // 글에서 장절을 찾아 문제로 만들기. [대제목]이 있으면 그 범위의 구절로 맞춰요.
-    const refKey = r => r.replace(/\s/g, "").replace(/절/g, "").replace(/(\d+)장/g, "$1:").replace(/~/g, "-").replace(/:+/g, ":");
+    // 장절 비교용: 띄어쓰기·"장/절" 정리, 같은 장 안의 범위는 펼쳐서 비교 (잠3:5-6 = 잠3:5,6)
+    const refKey = r => r.replace(/\s/g, "").replace(/절/g, "").replace(/(\d+)장/g, "$1:").replace(/~/g, "-").replace(/:+/g, ":")
+      .replace(/(\d+)-(\d+)(?!\d|:)/g, (all, a, b) => { a = +a; b = +b; if (b <= a || b - a > 30) return all; const o = []; for (let k = a; k <= b; k++) o.push(k); return o.join(","); });
+    // [대제목] / 대제목] / A파트] 처럼 앞에 붙은 범위 표시 읽기
+    function tagFilter(cands, tag) {
+      const t = tag.replace(/\s/g, "").toLowerCase();
+      const byMajor = cands.filter(o => { const mj = o.major.replace(/\s/g, "").toLowerCase(); return mj === t || mj.startsWith(t) || t.startsWith(mj); });
+      if (byMajor.length) return byMajor;
+      const pm = t.match(/^([a-z]|[ivx]+|\d+|d-\d)(?:파트|part|부|\.)?$/i);   // A파트, B, II, 3파트 → 중제목 앞글자
+      if (pm) { const byPart = cands.filter(o => o.minor.toLowerCase().startsWith(pm[1] + ".")); if (byPart.length) return byPart; }
+      const byMinor = cands.filter(o => o.minor.replace(/\s/g, "").toLowerCase().includes(t));
+      return byMinor.length ? byMinor : cands;
+    }
     function examFromText(text) {
       const all = SETS.flatMap(x => x.verses.map(v => ({ v, major: x.major, minor: x.minor })));
       const qs = [], missing = [];
-      text.split(/\n+/).forEach(line => {
+      text.replace(/[\u200B-\u200D\uFEFF]/g, "").split(/\n+/).forEach(line => {
         const m = line.match(/([가-힣]{1,4})\s*(\d+)\s*(?::|장)\s*(\d+)\s*절?((?:\s*[-~,]\s*\d+(?:\s*:\s*\d+)?)*)\s*(상|하)?/);
         if (!m) return;
         const key = refKey(m[1] + m[2] + ":" + m[3] + (m[4] || "") + (m[5] || ""));
-        const tag = (line.match(/\[([^\]]+)\]/) || [])[1];
+        const head = line.slice(0, m.index).replace(/^\s*\d+\s*[.)]\s*/, "");   // 번호 떼고 장절 앞부분
+        const tag = (head.match(/\[?\s*([^\[\]]+?)\s*\]/) || [])[1];
         let cands = all.filter(o => refKey(o.v.ref) === key);
         if (!cands.length) cands = all.filter(o => refKey(o.v.ref).startsWith(key.replace(/[상하]$/, "")));   // 상/하 등 생략한 경우
-        if (tag) { const t = tag.replace(/\s/g, ""); const c2 = cands.filter(o => o.major.replace(/\s/g, "") === t || o.major.replace(/\s/g, "").startsWith(t)); if (c2.length) cands = c2; }
+        if (tag) cands = tagFilter(cands, tag);
         if (cands.length) qs.push(cands[0]); else missing.push(m[1] + m[2] + ":" + m[3] + (m[4] || "").replace(/\s/g, ""));
       });
       return { qs, missing };
