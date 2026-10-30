@@ -286,6 +286,12 @@
     .x-share-box { display: flex; justify-content: flex-end; }
     .x-share { display: flex; align-items: center; gap: 4px; background: #FEE500; border: none; border-radius: 18px; padding: 7px 11px; font-family: inherit; font-size: 13px; font-weight: 700; color: #191919; cursor: pointer; white-space: nowrap; }
     .x-share:active { background: #f2d900; }
+    .x-split { display: inline-block; margin-top: 4px; padding: 3px 8px; border: 1px solid #999; background: #fff; border-radius: 12px; font-family: inherit; font-size: 12px; color: #555; cursor: pointer; }
+    .x-split.on { background: #333; border-color: #333; color: #fff; }
+    .x-sub-total { font-size: 15px; font-weight: 700; padding-right: 6px; }
+    .x-parts { margin: -4px 0 10px 12px; padding-left: 10px; border-left: 3px solid #333; }
+    .x-part { padding: 8px 10px; margin-bottom: 6px; border-color: #999; }
+    .x-part b { font-size: 14px; font-weight: 600; }
     .x-level { display: flex; gap: 6px; margin-bottom: 4px; }
     .x-level button { flex: 1; padding: 10px 4px; border: 1px solid #333; background: #fff; font-family: inherit; font-size: 15px; font-weight: 700; border-radius: 6px; cursor: pointer; }
     .x-level button.on { background: #333; color: #fff; }
@@ -1797,8 +1803,18 @@
       { key: "char", label: "인격 60구절", majors: ["인격 60구절"], def: 0 },
     ];
     EXAM_GROUPS.forEach(g => {
-      g.list = SETS.filter(x => g.majors.includes(x.major)).flatMap(x => x.verses.map(v => ({ v, major: x.major, minor: x.minor })));
+      // 중제목(묶음)별로도 고를 수 있게 parts를 만들어 둠
+      g.parts = SETS.map((x, si) => ({ x, si })).filter(o => g.majors.includes(o.x.major)).map(o => ({
+        si: o.si, label: o.x.minor, list: o.x.verses.map(v => ({ v, major: o.x.major, minor: o.x.minor }))
+      }));
+      g.list = g.parts.flatMap(pt => pt.list);
     });
+    // 중제목별로 나눠서 낼 때의 문제 수 { 그룹키: { 세트번호: 개수 } } — 없으면 범위 전체에서
+    const EXAM_SPLIT_KEY = "exam.split";
+    let examSplit = {};
+    try { examSplit = JSON.parse(localStorage.getItem(EXAM_SPLIT_KEY) || "{}") || {}; } catch (e) {}
+    const saveExam = () => { try { localStorage.setItem(EXAM_KEY, JSON.stringify(examCounts)); localStorage.setItem(EXAM_SPLIT_KEY, JSON.stringify(examSplit)); } catch (e) {} };
+    const groupCount = g => examSplit[g.key] ? g.parts.reduce((n, pt) => n + (examSplit[g.key][pt.si] || 0), 0) : examCounts[g.key];
     let examCounts = {};
     try { examCounts = JSON.parse(localStorage.getItem(EXAM_KEY) || "{}"); } catch (e) {}
     EXAM_GROUPS.forEach(g => { if (typeof examCounts[g.key] !== "number") examCounts[g.key] = g.def; });
@@ -1815,10 +1831,10 @@
     try { examLevel = localStorage.getItem(EXAM_LEVEL_KEY) || "normal"; } catch (e) {}
     if (!EXAM_LEVELS.some(l => l.key === examLevel)) examLevel = "normal";
     const verseLen = v => v.text.replace(/\s/g, "").length;
-    function examPool(g, n) {   // 이 범위에서 고를 수 있는 구절 번호들
-      const idx = g.list.map((_, i) => i);
+    function examPool(list, n) {   // 이 범위에서 고를 수 있는 구절 번호들
+      const idx = list.map((_, i) => i);
       if (examLevel === "normal") return idx;
-      idx.sort((a, b) => verseLen(g.list[a].v) - verseLen(g.list[b].v));
+      idx.sort((a, b) => verseLen(list[a].v) - verseLen(list[b].v));
       if (examLevel === "hard") idx.reverse();
       return idx.slice(0, Math.max(n, Math.ceil(idx.length / 3)));
     }
@@ -1838,21 +1854,61 @@
         $("xLevelDesc").textContent = EXAM_LEVELS.find(l => l.key === examLevel).desc;
       };
       drawLevel();
-      const total = () => EXAM_GROUPS.reduce((n, g) => n + examCounts[g.key], 0);
-      EXAM_GROUPS.forEach(g => {
-        const row = document.createElement("div");
-        row.className = "x-row";
-        row.innerHTML = '<span><b>' + g.label + '</b><small>' + g.list.length + '구절</small></span>' +
-          '<span class="x-step"><button data-d="-1">−</button><span></span><button data-d="1">+</button></span>';
-        const num = row.querySelector(".x-step span");
-        num.textContent = examCounts[g.key];
-        row.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-          examCounts[g.key] = Math.max(0, Math.min(g.list.length, examCounts[g.key] + Number(b.dataset.d)));
-          num.textContent = examCounts[g.key];
-          try { localStorage.setItem(EXAM_KEY, JSON.stringify(examCounts)); } catch (e) {}
-          sum.innerHTML = '총 <b>' + total() + '</b>문제'; go.disabled = !total();
+      const total = () => EXAM_GROUPS.reduce((n, g) => n + groupCount(g), 0);
+      const refresh = () => { saveExam(); sum.innerHTML = '총 <b>' + total() + '</b>문제'; go.disabled = !total(); };
+      // − 숫자 + 칸 하나 만들기
+      const stepper = (get, set, max) => {
+        const st = document.createElement("span"); st.className = "x-step";
+        st.innerHTML = '<button data-d="-1">−</button><span></span><button data-d="1">+</button>';
+        const num = st.querySelector("span"); num.textContent = get();
+        st.querySelectorAll("button").forEach(b => b.addEventListener("click", e => {
+          e.stopPropagation(); set(Math.max(0, Math.min(max, get() + Number(b.dataset.d)))); num.textContent = get(); refresh();
         }));
-        body.appendChild(row);
+        return st;
+      };
+      EXAM_GROUPS.forEach(g => {
+        const wrap = document.createElement("div");
+        body.appendChild(wrap);
+        const draw = () => {
+          const split = !!examSplit[g.key];
+          wrap.innerHTML = "";
+          const row = document.createElement("div");
+          row.className = "x-row";
+          const info = document.createElement("span");
+          info.innerHTML = '<b></b><small></small>';
+          info.querySelector("b").textContent = g.label;
+          info.querySelector("small").textContent = g.list.length + "구절";
+          if (g.parts.length > 1) {
+            const t = document.createElement("button");
+            t.className = "x-split" + (split ? " on" : "");
+            t.textContent = split ? "중제목별 ▴" : "중제목별 ▾";
+            t.addEventListener("click", () => {
+              if (split) { examCounts[g.key] = groupCount(g); delete examSplit[g.key]; }
+              else examSplit[g.key] = {};
+              draw(); refresh();
+            });
+            info.appendChild(t);
+          }
+          row.appendChild(info);
+          if (split) {
+            const tot = document.createElement("span"); tot.className = "x-sub-total"; tot.textContent = "합계 " + groupCount(g);
+            row.appendChild(tot);
+          } else {
+            row.appendChild(stepper(() => examCounts[g.key], v => { examCounts[g.key] = v; }, g.list.length));
+          }
+          wrap.appendChild(row);
+          if (!split) return;
+          const box = document.createElement("div"); box.className = "x-parts";
+          g.parts.forEach(pt => {
+            const r = document.createElement("div"); r.className = "x-row x-part";
+            r.innerHTML = '<span><b></b><small></small></span>';
+            r.querySelector("b").textContent = pt.label; r.querySelector("small").textContent = pt.list.length + "구절";
+            r.appendChild(stepper(() => examSplit[g.key][pt.si] || 0, v => { examSplit[g.key][pt.si] = v; row.querySelector(".x-sub-total").textContent = "합계 " + groupCount(g); }, pt.list.length));
+            box.appendChild(r);
+          });
+          wrap.appendChild(box);
+        };
+        draw();
       });
       const sum = document.createElement("div");
       sum.className = "x-total"; sum.innerHTML = '총 <b>' + total() + '</b>문제';
@@ -1864,9 +1920,10 @@
     function makeExam() {
       const qs = [];
       // 범위 안에서 무작위로 고르되, 문제는 원래 구절 순서대로(섞지 않음)
+      const pick = (list, n) => shuffle(examPool(list, n)).slice(0, n).sort((x, y) => x - y).map(i => list[i]);
       EXAM_GROUPS.forEach(g => {
-        const picked = shuffle(examPool(g, examCounts[g.key])).slice(0, examCounts[g.key]).sort((x, y) => x - y);
-        qs.push(...picked.map(i => g.list[i]));
+        if (examSplit[g.key]) g.parts.forEach(pt => qs.push(...pick(pt.list, examSplit[g.key][pt.si] || 0)));
+        else qs.push(...pick(g.list, examCounts[g.key]));
       });
       exam = { qs, all: false, level: examLevel };
       track("exam_start", { count: qs.length, level: examLevel });
