@@ -284,7 +284,12 @@
     .x-q .a i { display: block; font-style: normal; font-size: 13px; color: #555; margin-bottom: 2px; }
     .x-q.open .a { display: block; }
     .x-share-box { display: flex; justify-content: flex-end; }
-    .x-share-box .kakao { width: 38px; height: 38px; }
+    .x-share { display: flex; align-items: center; gap: 4px; background: #FEE500; border: none; border-radius: 18px; padding: 7px 11px; font-family: inherit; font-size: 13px; font-weight: 700; color: #191919; cursor: pointer; white-space: nowrap; }
+    .x-share:active { background: #f2d900; }
+    .x-level { display: flex; gap: 6px; margin-bottom: 4px; }
+    .x-level button { flex: 1; padding: 10px 4px; border: 1px solid #333; background: #fff; font-family: inherit; font-size: 15px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+    .x-level button.on { background: #333; color: #fff; }
+    .x-level-desc { font-size: 12px; color: #777; margin: 0 2px 4px; }
     .x-msg { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #333; color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 20px; z-index: 50; max-width: 90%; text-align: center; }
     .x-bar { display: flex; gap: 8px; margin: 4px 0 10px; }
     .x-bar button { flex: 1; padding: 10px 4px; border: 1px solid #333; background: #fff; font-family: inherit; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; }
@@ -627,8 +632,8 @@
     <div class="screen-head">
       <button class="home" id="examBack">목록</button>
       <div class="screen-title">암송시험</div>
-      <span class="screen-spacer x-share-box"><button class="kakao" id="examShare" aria-label="시험지를 카카오톡으로 공유" style="visibility:hidden">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#191919" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7l-1 3.7c-.1.3.3.6.6.4l4.3-2.9c.5.1.9.1 1.4.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
+      <span class="screen-spacer x-share-box"><button class="x-share" id="examShare" aria-label="시험지를 카카오톡으로 공유" style="visibility:hidden">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#191919" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7l-1 3.7c-.1.3.3.6.6.4l4.3-2.9c.5.1.9.1 1.4.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg><span>공유하기</span>
       </button></span>
     </div>
     <div class="screen-body" id="examBody"></div>
@@ -1798,11 +1803,41 @@
     try { examCounts = JSON.parse(localStorage.getItem(EXAM_KEY) || "{}"); } catch (e) {}
     EXAM_GROUPS.forEach(g => { if (typeof examCounts[g.key] !== "number") examCounts[g.key] = g.def; });
     let exam = null;   // { qs: [{ v, major, minor }], all: 정답 모두 보기 }
+    // 난이도 = 구절 글자 수(띄어쓰기 빼고). 범위마다 짧은 순으로 줄 세워서
+    // 쉽게: 짧은 1/3에서만, 표준: 범위 전체에서, 어렵게: 긴 1/3에서만 골라요.
+    const EXAM_LEVEL_KEY = "exam.level";
+    const EXAM_LEVELS = [
+      { key: "easy", label: "쉽게", desc: "범위마다 글자 수가 짧은 구절(하위 1/3)에서 골라요" },
+      { key: "normal", label: "표준", desc: "범위 전체에서 골고루 골라요" },
+      { key: "hard", label: "어렵게", desc: "범위마다 글자 수가 긴 구절(상위 1/3)에서 골라요" },
+    ];
+    let examLevel = "normal";
+    try { examLevel = localStorage.getItem(EXAM_LEVEL_KEY) || "normal"; } catch (e) {}
+    if (!EXAM_LEVELS.some(l => l.key === examLevel)) examLevel = "normal";
+    const verseLen = v => v.text.replace(/\s/g, "").length;
+    function examPool(g, n) {   // 이 범위에서 고를 수 있는 구절 번호들
+      const idx = g.list.map((_, i) => i);
+      if (examLevel === "normal") return idx;
+      idx.sort((a, b) => verseLen(g.list[a].v) - verseLen(g.list[b].v));
+      if (examLevel === "hard") idx.reverse();
+      return idx.slice(0, Math.max(n, Math.ceil(idx.length / 3)));
+    }
 
     function renderExamSetup() {
       $("examShare").style.visibility = "hidden";
       const body = $("examBody");
-      body.innerHTML = '<div class="g-sec">범위별 문제 수</div>';
+      body.innerHTML = '<div class="g-sec">난이도 (글자 수 기준)</div><div class="x-level" id="xLevel"></div><div class="x-level-desc" id="xLevelDesc"></div><div class="g-sec">범위별 문제 수</div>';
+      const drawLevel = () => {
+        $("xLevel").innerHTML = "";
+        EXAM_LEVELS.forEach(l => {
+          const b = document.createElement("button");
+          b.textContent = l.label; b.classList.toggle("on", l.key === examLevel);
+          b.addEventListener("click", () => { examLevel = l.key; try { localStorage.setItem(EXAM_LEVEL_KEY, l.key); } catch (e) {} drawLevel(); });
+          $("xLevel").appendChild(b);
+        });
+        $("xLevelDesc").textContent = EXAM_LEVELS.find(l => l.key === examLevel).desc;
+      };
+      drawLevel();
       const total = () => EXAM_GROUPS.reduce((n, g) => n + examCounts[g.key], 0);
       EXAM_GROUPS.forEach(g => {
         const row = document.createElement("div");
@@ -1830,11 +1865,11 @@
       const qs = [];
       // 범위 안에서 무작위로 고르되, 문제는 원래 구절 순서대로(섞지 않음)
       EXAM_GROUPS.forEach(g => {
-        const picked = shuffle(g.list.map((_, i) => i)).slice(0, examCounts[g.key]).sort((x, y) => x - y);
+        const picked = shuffle(examPool(g, examCounts[g.key])).slice(0, examCounts[g.key]).sort((x, y) => x - y);
         qs.push(...picked.map(i => g.list[i]));
       });
-      exam = { qs, all: false };
-      track("exam_start", { count: qs.length });
+      exam = { qs, all: false, level: examLevel };
+      track("exam_start", { count: qs.length, level: examLevel });
     }
     function renderExam() {
       $("examShare").style.visibility = "visible";
@@ -1860,7 +1895,8 @@
     }
     // 시험지를 글자로 공유 (휴대폰 공유창 → 카카오톡 선택). 정답은 넣지 않아요.
     function examText() {
-      return "📝 암송시험 (" + exam.qs.length + "문제)\n\n" + exam.qs.map((q, i) => (i + 1) + ". [" + q.major + "] " + q.v.ref).join("\n");
+      const lv = EXAM_LEVELS.find(l => l.key === exam.level);
+      return "📝 암송시험 (" + exam.qs.length + "문제" + (lv && lv.key !== "normal" ? " · " + lv.label : "") + ")\n\n" + exam.qs.map((q, i) => (i + 1) + ". [" + q.major + "] " + q.v.ref).join("\n");
     }
     function examMsg(t) {
       const m = document.createElement("div"); m.className = "x-msg"; m.textContent = t;
