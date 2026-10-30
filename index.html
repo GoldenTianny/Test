@@ -1822,7 +1822,11 @@
     }
     function makeExam() {
       const qs = [];
-      EXAM_GROUPS.forEach(g => qs.push(...shuffle([...g.list]).slice(0, examCounts[g.key])));
+      // 범위 안에서 무작위로 고르되, 문제는 원래 구절 순서대로(섞지 않음)
+      EXAM_GROUPS.forEach(g => {
+        const picked = shuffle(g.list.map((_, i) => i)).slice(0, examCounts[g.key]).sort((x, y) => x - y);
+        qs.push(...picked.map(i => g.list[i]));
+      });
       exam = { qs, all: false };
       track("exam_start", { count: qs.length });
     }
