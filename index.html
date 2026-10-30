@@ -318,6 +318,9 @@
     .x-share-box { display: flex; justify-content: flex-end; }
     .x-share { display: flex; align-items: center; gap: 4px; background: #FEE500; border: none; border-radius: 18px; padding: 7px 11px; font-family: inherit; font-size: 13px; font-weight: 700; color: #191919; cursor: pointer; white-space: nowrap; }
     .x-share:active { background: #f2d900; }
+    .x-paste { margin-top: 26px; border-top: 1px dashed #bbb; padding-top: 4px; }
+    .x-paste textarea { width: 100%; box-sizing: border-box; min-height: 140px; padding: 10px; margin-bottom: 8px; border: 2px solid #333; border-radius: 6px; font-family: inherit; font-size: 15px; line-height: 1.6; }
+    .x-paste-msg { font-size: 13px; color: #d33; margin-bottom: 6px; }
     .x-split { display: inline-block; margin-top: 4px; padding: 3px 8px; border: 1px solid #999; background: #fff; border-radius: 12px; font-family: inherit; font-size: 12px; color: #555; cursor: pointer; }
     .x-split.on { background: #333; border-color: #333; color: #fff; }
     .x-sub-total { font-size: 15px; font-weight: 700; padding-right: 6px; }
@@ -1954,6 +1957,38 @@
       go.className = "x-go"; go.textContent = "시험지 만들기"; go.disabled = !total();
       go.addEventListener("click", () => { makeExam(); pushNav({ screen: "exam", q: 1 }); renderExam(); });
       body.appendChild(sum); body.appendChild(go);
+      // 받은 시험지(글자)를 붙여넣어서 시험 보기
+      const paste = document.createElement("div");
+      paste.className = "x-paste";
+      paste.innerHTML = '<div class="g-sec">📋 받은 시험지로 시험 보기</div>' +
+        '<textarea id="xPasteText" placeholder="카톡 등으로 받은 시험지를 여기에 붙여넣으세요&#10;예)&#10;1. [180구절] 잠15:1&#10;2. 롬8:28&#10;3. 요 3:16"></textarea>' +
+        '<div id="xPasteMsg" class="x-paste-msg"></div><button class="x-go" id="xPasteGo">이 시험지로 시험 보기</button>';
+      body.appendChild(paste);
+      $("xPasteGo").addEventListener("click", () => {
+        const r = examFromText($("xPasteText").value);
+        if (!r.qs.length) { $("xPasteMsg").textContent = "장절을 찾지 못했어요. 「잠15:1」처럼 장절이 들어 있는지 확인해 주세요."; return; }
+        exam = { qs: r.qs, all: false, level: "normal" };
+        track("exam_start", { count: r.qs.length, from: "paste" });
+        pushNav({ screen: "exam", q: 1 }); renderExam();
+        if (r.missing.length) examMsg("못 찾은 구절 " + r.missing.length + "개: " + r.missing.join(", "));
+      });
+    }
+    // 글에서 장절을 찾아 문제로 만들기. [대제목]이 있으면 그 범위의 구절로 맞춰요.
+    const refKey = r => r.replace(/\s/g, "").replace(/절/g, "").replace(/(\d+)장/g, "$1:").replace(/~/g, "-").replace(/:+/g, ":");
+    function examFromText(text) {
+      const all = SETS.flatMap(x => x.verses.map(v => ({ v, major: x.major, minor: x.minor })));
+      const qs = [], missing = [];
+      text.split(/\n+/).forEach(line => {
+        const m = line.match(/([가-힣]{1,4})\s*(\d+)\s*(?::|장)\s*(\d+)\s*절?((?:\s*[-~,]\s*\d+(?:\s*:\s*\d+)?)*)\s*(상|하)?/);
+        if (!m) return;
+        const key = refKey(m[1] + m[2] + ":" + m[3] + (m[4] || "") + (m[5] || ""));
+        const tag = (line.match(/\[([^\]]+)\]/) || [])[1];
+        let cands = all.filter(o => refKey(o.v.ref) === key);
+        if (!cands.length) cands = all.filter(o => refKey(o.v.ref).startsWith(key.replace(/[상하]$/, "")));   // 상/하 등 생략한 경우
+        if (tag) { const t = tag.replace(/\s/g, ""); const c2 = cands.filter(o => o.major.replace(/\s/g, "") === t || o.major.replace(/\s/g, "").startsWith(t)); if (c2.length) cands = c2; }
+        if (cands.length) qs.push(cands[0]); else missing.push(m[1] + m[2] + ":" + m[3] + (m[4] || "").replace(/\s/g, ""));
+      });
+      return { qs, missing };
     }
     function makeExam() {
       const qs = [];
