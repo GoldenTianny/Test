@@ -301,6 +301,7 @@
     .x-fixes small { color: #888; font-size: 12px; }
     .x-score { text-align: center; font-size: 15px; margin-top: 14px; }
     .x-score b { font-size: 30px; }
+    .x-score small { font-size: 11px; color: #999; }
     .x-q .n { display: inline-block; min-width: 28px; font-weight: 700; }
     .x-q .m { font-size: 12px; color: #777; margin-right: 6px; }
     .x-q .r { font-size: 17px; font-weight: 700; }
@@ -2060,19 +2061,19 @@
       $("xwCheck").addEventListener("click", () => {
         const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
         const norm = w => xWords(w).join("").toLowerCase();
-        // 정답 단어 / 내가 쓴 단어 (쉼표·마침표 같은 문장부호는 채점에서 뺌)
-        const ans = q.v.text.split(/\s+/).filter(w => norm(w)), A = ans.map(norm);
-        const mine = $("xwText").value.split(/\s+/).filter(w => norm(w)), B = mine.map(norm);
-        // 순서를 지키며 가장 많이 맞는 단어 찾기(LCS) → 같음 / 빠짐 / 잘못 씀
-        const n = A.length, m = B.length, L = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+        // 띄어쓰기·문장부호는 무시하고 글자 단위로 비교 (정답 글자마다 몇 번째 단어인지 기억)
+        const ans = q.v.text.split(/\s+/).filter(w => norm(w));
+        const A = []; ans.forEach((w, wi) => [...norm(w)].forEach((c, k) => A.push({ c, wi, first: k === 0 })));
+        const B = [...norm($("xwText").value)];
+        const n = A.length, m = B.length, L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
         for (let a = n - 1; a >= 0; a--) for (let b = m - 1; b >= 0; b--)
-          L[a][b] = A[a] === B[b] ? L[a + 1][b + 1] + 1 : Math.max(L[a + 1][b], L[a][b + 1]);
+          L[a][b] = A[a].c === B[b] ? L[a + 1][b + 1] + 1 : Math.max(L[a + 1][b], L[a][b + 1]);
         const ops = [];
         let a = 0, b = 0;
         while (a < n || b < m) {
-          if (a < n && b < m && A[a] === B[b]) { ops.push({ t: "same", w: ans[a] }); a++; b++; }
-          else if (b < m && (a >= n || L[a][b + 1] > L[a + 1][b])) { ops.push({ t: "del", w: mine[b] }); b++; }
-          else { ops.push({ t: "ins", w: ans[a] }); a++; }
+          if (a < n && b < m && A[a].c === B[b]) { ops.push({ t: "same", ...A[a] }); a++; b++; }
+          else if (b < m && (a >= n || L[a][b + 1] > L[a + 1][b])) { ops.push({ t: "del", c: B[b] }); b++; }
+          else { ops.push({ t: "ins", ...A[a] }); a++; }
         }
         // 틀린 덩어리 안에서는 '잘못 쓴 말' 다음에 '정답'이 오도록 정렬
         for (let k = 0; k < ops.length;) {
@@ -2081,16 +2082,24 @@
           const run = ops.slice(k, e); ops.splice(k, e - k, ...run.filter(o => o.t === "del"), ...run.filter(o => o.t === "ins"));
           k = e;
         }
-        const ok = ops.filter(o => o.t === "same").length;
-        const pct = n ? Math.round(ok / n * 100) : 0;
-        // 틀린 곳 묶기: 맞은 단어 사이에 있는 '쓴 것'과 '정답'을 한 덩어리로
-        const fixes = []; let cur = null, before = "";
+        // 단어 점수: 글자가 하나도 안 틀린 정답 단어 수
+        const bad = new Set(ops.filter(o => o.t === "ins").map(o => o.wi));
+        ops.forEach((o, k) => { if (o.t === "del") { const nb = ops.slice(k).find(x => x.t !== "del"); if (nb && nb.wi != null) bad.add(nb.wi); } });
+        const ok = ans.length - bad.size, nW = ans.length;
+        const pct = nW ? Math.round(ok / nW * 100) : 0;
+        // 틀린 곳 묶기
+        const fixes = []; let cur = null, lastWi = null;
+        const addCh = (arr, o) => { if (o.first && arr.length) arr.push(" "); arr.push(o.c); };
         ops.forEach(o => {
-          if (o.t === "same") { if (cur) { fixes.push(cur); cur = null; } before = o.w; return; }
-          if (!cur) cur = { wrote: [], should: [], before };
-          (o.t === "del" ? cur.wrote : cur.should).push(o.w);
+          if (o.t === "same") {
+            if (cur) { if (!o.first && !cur.hasFirst) cur.inWord = ans[o.wi]; fixes.push(cur); cur = null; }   // 단어 중간 오타
+            lastWi = o.wi; return;
+          }
+          if (!cur) cur = { wrote: [], should: [], before: lastWi == null ? "" : ans[lastWi] };
+          if (o.t === "del") cur.wrote.push(o.c); else { addCh(cur.should, o); if (o.first) { cur.hasFirst = true; cur.inWord = ""; } else if (!cur.hasFirst) cur.inWord = ans[o.wi]; }
         });
         if (cur) fixes.push(cur);
+        fixes.forEach(f => { f.wrote = f.wrote.join(""); f.should = f.should.join(""); });
 
         const res = $("xwRes"); res.innerHTML = "";
         // 소제목
@@ -2101,11 +2110,22 @@
         else { if (tGot) { tBox.append(el("s", null, tGot), " → "); } else tBox.append("(안 씀) → "); tBox.append(el("span", "fix", topic)); }
         res.append(tBox);
         // 점수
-        const sc = el("div", "x-score"); sc.innerHTML = '<b>' + pct + '점</b><br>맞은 단어 ' + ok + ' / ' + n;
+        const sc = el("div", "x-score"); sc.innerHTML = '<b>' + pct + '점</b><br>맞은 단어 ' + ok + ' / ' + nW + '<br><small>띄어쓰기는 채점하지 않아요</small>';
         res.append(sc);
-        // 한 줄로 비교해서 보기
+        // 한 줄로 비교해서 보기 (띄어쓰기는 정답 기준으로)
         const line = el("div", "x-wres");
-        ops.forEach(o => line.append(el("span", o.t === "same" ? "ok" : o.t === "del" ? "wrong" : "miss", o.w), " "));
+        let span = null, started = false;
+        ops.forEach((o, k) => {
+          const cls = o.t === "same" ? "ok" : o.t === "del" ? "wrong" : "miss";
+          if (o.t !== "del" && o.first && started) { line.append(" "); span = null; }
+          if (o.t === "del" && started && (k === 0 || ops[k - 1].t !== "del")) {
+            // 단어 사이에 끼어든 말이면 앞에 띄움 (단어 중간 오타면 붙여서)
+            const nx = ops.slice(k).find(x => x.t !== "del");
+            if (!nx || nx.first) { line.append(" "); span = null; }
+          }
+          if (!span || span.className !== cls) { span = el("span", cls, ""); line.append(span); }
+          span.textContent += o.c; started = true;
+        });
         res.append(el("div", "g-sec", "비교해서 보기"), line,
           el("div", "x-legend", "초록 = 맞음 · 빨간 줄 = 잘못 쓴 말 · 파란 밑줄 = 빠진 말"));
         // 틀린 곳 목록
@@ -2114,10 +2134,11 @@
           const ul = el("ol", "x-fixes");
           fixes.forEach(f => {
             const li = el("li");
-            if (f.before) li.append(el("small", null, "「…" + f.before + "」 다음 "));
-            if (f.wrote.length && f.should.length) li.append(el("s", null, f.wrote.join(" ")), " → ", el("span", "fix", f.should.join(" ")));
-            else if (f.should.length) li.append(el("span", "fix", f.should.join(" ")), el("small", null, " 빠짐"));
-            else li.append(el("s", null, f.wrote.join(" ")), el("small", null, " 더 씀"));
+            if (f.inWord) li.append(el("small", null, "「" + f.inWord + "」에서 "));
+            else if (f.before) li.append(el("small", null, "「…" + f.before + "」 다음 "));
+            if (f.wrote && f.should) li.append(el("s", null, f.wrote), " → ", el("span", "fix", f.should));
+            else if (f.should) li.append(el("span", "fix", f.should), el("small", null, " 빠짐"));
+            else li.append(el("s", null, f.wrote), el("small", null, " 더 씀"));
             ul.append(li);
           });
           res.append(ul);
