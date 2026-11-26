@@ -13,6 +13,9 @@ const BOOK_EN = {
   "요일": "1 John", "계": "Revelation"
 };
 
+// 한글 성경과 영어 성경의 절 번호가 다른 곳
+const REF_EN_FIX = { "고후13:13": "2 Corinthians 13:14" };
+
 const TOPIC_EN = {
   // 5확신
   "구원의확신": "Assurance of Salvation", "기도응답의확신": "Assurance of Answered Prayer", "승리의확신": "Assurance of Victory",

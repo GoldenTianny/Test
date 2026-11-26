@@ -865,6 +865,7 @@
     const enOn = v => HAS_EN && isNivShown(v);
     const topicKey = v => v.name.replace(/^\d+\.\s*/, "").replace(/\s/g, "");
     function refEn(r) {
+      if (typeof REF_EN_FIX === "object" && REF_EN_FIX[r]) return REF_EN_FIX[r];
       const m = r.match(/^([가-힣]+)(.*)$/); if (!m) return r;
       const rest = m[2].replace(/(\d+),(\d+)/g, (a, x, y) => +y === +x + 1 ? x + "-" + y : a).replace(/상$/, "a").replace(/하$/, "b");
       return (BOOK_EN[m[1]] || m[1]) + " " + rest;
