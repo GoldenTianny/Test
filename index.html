@@ -668,7 +668,7 @@
     </div>
     <div class="share-msg" id="shareMsg"></div>
     <div class="ver-row" id="verRow">
-      <span>성경</span><button data-v="krv">개역한글</button><button data-v="nkrv">개역개정 🔒</button><button data-v="niv">NIV</button>
+      <span>성경</span><button data-v="krv">개역한글</button><button data-v="nkrv">개역개정 🔒</button><button data-v="niv">NIV 🔒</button>
     </div>
     <div class="wallet-row">
       <button class="wallet-btn" id="openWallet">
@@ -815,7 +815,6 @@
           integrity="sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka"
           crossorigin="anonymous"></script>
   <script src="data.js"></script>
-  <script src="niv.js"></script>
   <script src="en.js"></script>
   <script>
     // ---------- 구글 애널리틱스 ----------
@@ -846,24 +845,25 @@
 
     const $ = id => document.getElementById(id);
     // ---------- 번역본 (개역한글 / NIV) ----------
-    // NIV는 정해진 범위(niv.js)만 있어요. 없는 구절은 개역한글로 보여줘요.
     const VERSION_KEY = "bible.version";
-    const HAS_NIV = typeof NIV === "object" && Object.keys(NIV).length > 0;
+    // 개역개정·NIV는 저작권 때문에 공개 사이트에 넣지 않아요.
+    // 모임 비밀번호를 넣은 사람만 서버에서 받아 이 휴대폰에 보관해요. 없는 구절은 개역한글로 보여줘요.
+    const NKRV_KEY = "bible.nkrv", NIV_KEY = "bible.niv";
+    let NKRV = null, NIVD = null;
+    try { NKRV = JSON.parse(localStorage.getItem(NKRV_KEY) || "null"); } catch (e) {}
+    try { NIVD = JSON.parse(localStorage.getItem(NIV_KEY) || "null"); } catch (e) {}
+    let HAS_NIV = !!(NIVD && Object.keys(NIVD).length);
     let version = "krv";
     try { version = localStorage.getItem(VERSION_KEY) || "krv"; } catch (e) {}
     if (version === "niv" && !HAS_NIV) version = "krv";
-    // 개역개정: 저작권 때문에 공개 사이트에 넣지 않고, 비밀번호를 아는 사람만 서버에서 받아 이 휴대폰에 보관해요.
-    const NKRV_KEY = "bible.nkrv";
-    let NKRV = null;
-    try { NKRV = JSON.parse(localStorage.getItem(NKRV_KEY) || "null"); } catch (e) {}
     if (version === "nkrv" && !NKRV) version = "krv";
     const VERSION_NAMES = { krv: "개역한글", nkrv: "개역개정", niv: "NIV" };
-    const nivOf = v => HAS_NIV ? NIV[v.ref] : undefined;
+    const nivOf = v => HAS_NIV ? NIVD[v.ref] : undefined;
     const nkrvOf = v => NKRV ? NKRV[v.ref] : undefined;
     const vText = v => (version === "niv" && nivOf(v)) || (version === "nkrv" && nkrvOf(v)) || v.text;
     const isNivShown = v => version === "niv" && !!nivOf(v);
     function setVersion(k) {
-      if (k === "nkrv" && !NKRV) { askNkrv(); return; }
+      if ((k === "nkrv" && !NKRV) || (k === "niv" && !HAS_NIV)) { askUnlock(k); return; }
       version = k;
       try { localStorage.setItem(VERSION_KEY, k); } catch (e) {}
       track("version", { version: k });
@@ -2445,24 +2445,24 @@
     const NIV_NOTICE_SHORT = "NIV® © Biblica, Inc.™ Used by permission.";
     function updateVersionUI() {
       $("verRow").style.display = "";
-      $("verRow").querySelector('[data-v="niv"]').style.display = HAS_NIV ? "" : "none";
+      $("verRow").querySelector('[data-v="niv"]').textContent = HAS_NIV ? "NIV" : "NIV 🔒";
       $("verRow").querySelector('[data-v="nkrv"]').textContent = NKRV ? "개역개정" : "개역개정 🔒";
       $("verRow").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === version));
-      $("nivNotice").textContent = HAS_NIV && version === "niv" ? NIV_NOTICE + " (NIV 범위: 5확신 · 8구절 · 60구절 · 180구절 · 242구절 I~VI)" : "";
+      $("nivNotice").textContent = HAS_NIV && version === "niv" ? NIV_NOTICE : "";
       $("cardVer").textContent = VERSION_NAMES[version];
     }
     $("verRow").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) setVersion(b.dataset.v); });
     // 카드의 번역본 버튼: 개역한글 → 개역개정 → NIV 순서로 바뀜
     $("cardVer").addEventListener("click", e => {
       e.stopPropagation();
-      const order = ["krv", "nkrv"].concat(HAS_NIV ? ["niv"] : []);
+      const order = ["krv", "nkrv", "niv"];
       setVersion(order[(order.indexOf(version) + 1) % order.length]);
     });
-    // ---------- 개역개정 비밀번호 ----------
+    // ---------- 개역개정·NIV 비밀번호 ----------
     const SUPABASE_URL = "https://rkrzgrdeqyvuwdbhiumz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_qp-wPae73D9GOC7TZ31Bnw_iHYuHs1G";
-    async function fetchNkrv(pw) {
-      const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/nkrv_get", {
+    async function fetchBibles(pw) {
+      const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/bible_get", {
         method: "POST",
         headers: Object.assign({ "Content-Type": "application/json", apikey: SUPABASE_KEY },
           SUPABASE_KEY.startsWith("sb_") ? {} : { Authorization: "Bearer " + SUPABASE_KEY }),
@@ -2471,10 +2471,24 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     }
-    function askNkrv() {
+    // 이미 비밀번호를 넣은 휴대폰은 열 때마다 조용히 최신 본문으로 갱신 (새로 추가된 구절 반영)
+    const BIBLE_PW_KEY = "bible.pw";
+    (async () => {
+      let pw = ""; try { pw = localStorage.getItem(BIBLE_PW_KEY) || ""; } catch (e) {}
+      if (!pw) return;
+      try {
+        const res = await fetchBibles(pw);
+        if (!res || !res.ok) return;
+        NKRV = res.nkrv || {}; NIVD = res.niv || {}; HAS_NIV = Object.keys(NIVD).length > 0;
+        try { localStorage.setItem(NKRV_KEY, JSON.stringify(NKRV)); localStorage.setItem(NIV_KEY, JSON.stringify(NIVD)); } catch (e) {}
+        updateVersionUI();
+        if (deck && $("app").style.display === "flex") render();
+      } catch (e) {}
+    })();
+    function askUnlock(target) {
       const m = document.createElement("div");
       m.className = "ver-modal";
-      m.innerHTML = '<div class="ver-box"><b>개역개정 🔒</b><small>개역개정은 저작권 때문에 모임 안에서만 볼 수 있어요.<br>받은 비밀번호를 넣어 주세요. (한 번만 넣으면 돼요)</small>' +
+      m.innerHTML = '<div class="ver-box"><b>' + VERSION_NAMES[target] + ' 🔒</b><small>개역개정과 NIV는 저작권 때문에 모임 안에서만 볼 수 있어요.<br>받은 비밀번호를 넣어 주세요. (한 번만 넣으면 둘 다 열려요)</small>' +
         '<input type="password" class="ver-pw" placeholder="비밀번호" autocomplete="off"><div class="ver-err"></div>' +
         '<div class="ver-btns"><button class="ok">확인</button><button class="cancel">취소</button></div></div>';
       document.body.appendChild(m);
@@ -2485,12 +2499,16 @@
         if (!inp.value.trim()) { err.textContent = "비밀번호를 넣어 주세요"; return; }
         ok.disabled = true; ok.textContent = "확인 중…"; err.textContent = "";
         try {
-          const res = await fetchNkrv(inp.value.trim());
+          const res = await fetchBibles(inp.value.trim());
           if (!res || !res.ok) { err.textContent = "비밀번호가 맞지 않아요"; return; }
-          NKRV = res.verses || {};
-          try { localStorage.setItem(NKRV_KEY, JSON.stringify(NKRV)); } catch (e) {}
-          track("nkrv_unlock", { count: Object.keys(NKRV).length });
-          close(); setVersion("nkrv");
+          try { localStorage.setItem(BIBLE_PW_KEY, inp.value.trim()); } catch (e) {}
+          NKRV = res.nkrv || {}; NIVD = res.niv || {};
+          HAS_NIV = Object.keys(NIVD).length > 0;
+          try { localStorage.setItem(NKRV_KEY, JSON.stringify(NKRV)); localStorage.setItem(NIV_KEY, JSON.stringify(NIVD)); } catch (e) {}
+          track("bible_unlock", { nkrv: Object.keys(NKRV).length, niv: Object.keys(NIVD).length });
+          close();
+          if (target === "niv" && !HAS_NIV) { updateVersionUI(); alert("NIV 본문이 아직 준비되지 않았어요."); return; }
+          setVersion(target);
         } catch (e) { err.textContent = "연결하지 못했어요. 인터넷을 확인해 주세요."; }
         finally { ok.disabled = false; ok.textContent = "확인"; }
       };
@@ -2507,7 +2525,7 @@
       m.innerHTML = '<div class="ver-box"><b>어떤 성경으로 외울까요?</b><small>나중에 목록 화면 위쪽이나 카드에서 언제든 바꿀 수 있어요</small>' +
         '<button data-v="krv">개역한글<small>전체 구절</small></button>' +
         '<button data-v="nkrv">개역개정 🔒<small>모임 비밀번호가 필요해요</small></button>' +
-        (HAS_NIV ? '<button data-v="niv">NIV<small>5확신 ~ 242구절 VI. 증거까지 · 나머지는 개역한글</small></button>' : '') + '</div>';
+        '<button data-v="niv">NIV 🔒<small>모임 비밀번호가 필요해요</small></button></div>';
       m.addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (!b) return; setVersion(b.dataset.v); m.remove(); });
       document.body.appendChild(m);
     }
