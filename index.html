@@ -621,6 +621,23 @@
     .vrow { gap: 5px; }
     .vrow .vfrom { display: none; }
 
+    /* 번역본 */
+    .ver-row { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #555; }
+    .ver-row button { padding: 6px 14px; border: 1px solid #333; background: #fff; border-radius: 16px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .ver-row button.on { background: #333; color: #fff; }
+    .ver-chip { margin-left: 6px; padding: 2px 8px; border: 1px solid #333; background: #fff; border-radius: 10px; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; vertical-align: middle; }
+    .ver-note { font-size: 10px; color: #aaa; text-align: right; margin-top: 6px; }
+    .ver-note:empty { display: none; }
+    .niv-notice { font-size: 10px; color: #999; line-height: 1.5; margin-top: 14px; }
+    .niv-notice:empty { display: none; }
+    .ver-modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+    .ver-box { background: #fff; border-radius: 10px; padding: 20px 16px; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
+    .ver-box > b { font-size: 18px; }
+    .ver-box > small { font-size: 12px; color: #777; }
+    .ver-box button { padding: 14px; border: 2px solid #333; background: #fff; border-radius: 8px; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
+    .ver-box button small { display: block; font-size: 12px; font-weight: 400; color: #777; margin-top: 3px; }
+    .ver-box button:active { background: #eee; }
+
     /* 구절 고르기 */
     .picker-slot { padding: 8px 16px; font-size: 13px; color: #555; border-bottom: 1px solid #ccc; background: #fafafa; }
     .picker-slot b { color: #222; }
@@ -645,6 +662,9 @@
       </div>
     </div>
     <div class="share-msg" id="shareMsg"></div>
+    <div class="ver-row" id="verRow">
+      <span>성경</span><button data-v="krv">개역한글</button><button data-v="niv">NIV</button>
+    </div>
     <div class="wallet-row">
       <button class="wallet-btn" id="openWallet">
         <span class="wallet-icon">👛</span>
@@ -656,6 +676,7 @@
     <div class="menu-list" id="menuList"></div>
     <button class="game-btn" id="openGame">🎮 게임</button>
     <button class="game-btn" id="openExam">📝 암송시험</button>
+    <div class="niv-notice" id="nivNotice"></div>
 
     <!-- 힌트: 성경 66권 › 장별로 내가 외운 구절 보기 -->
     <div class="hint-panel" id="menuHintPanel">
@@ -738,6 +759,7 @@
       <div class="top-left">
         <div class="major" id="major"></div>
         <span class="counter" id="counter"></span>
+        <button class="ver-chip" id="cardVer" title="번역본 바꾸기"></button>
       </div>
       <div class="top-btns">
         <button class="home" id="addToWallet">👛 넣기</button>
@@ -760,6 +782,7 @@
       <div id="hintBody"></div>
     </div>
     <div class="hint" id="hint">화면을 터치하면 한 단어씩 보여요</div>
+    <div class="ver-note" id="verNote"></div>
   </div>
 
   <div class="bottom">
@@ -787,6 +810,7 @@
           integrity="sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka"
           crossorigin="anonymous"></script>
   <script src="data.js"></script>
+  <script src="niv.js"></script>
   <script>
     // ---------- 구글 애널리틱스 ----------
     // 애널리틱스에서 받은 측정 ID(G-XXXXXXXXXX)를 넣으면 통계가 모이기 시작해요. 비워두면 아무것도 안 보내요.
@@ -815,7 +839,26 @@
 
 
     const $ = id => document.getElementById(id);
-    const words = v => v.text.split(/\s+/);
+    // ---------- 번역본 (개역한글 / NIV) ----------
+    // NIV는 정해진 범위(niv.js)만 있어요. 없는 구절은 개역한글로 보여줘요.
+    const VERSION_KEY = "bible.version";
+    const HAS_NIV = typeof NIV === "object" && Object.keys(NIV).length > 0;
+    let version = "krv";
+    try { version = localStorage.getItem(VERSION_KEY) || "krv"; } catch (e) {}
+    if (version === "niv" && !HAS_NIV) version = "krv";
+    const VERSION_NAMES = { krv: "개역한글", niv: "NIV" };
+    const nivOf = v => HAS_NIV ? NIV[v.ref] : undefined;
+    const vText = v => (version === "niv" && nivOf(v)) || v.text;
+    const isNivShown = v => version === "niv" && !!nivOf(v);
+    function setVersion(k) {
+      version = k;
+      try { localStorage.setItem(VERSION_KEY, k); } catch (e) {}
+      track("version", { version: k });
+      updateVersionUI();
+      if (deck && $("app").style.display === "flex") { shown = 0; render(); }
+      if (exam && $("exam").classList.contains("open") && $("examBody").querySelector(".x-q")) renderExam();
+    }
+    const words = v => vText(v).split(/\s+/);
     SETS.forEach((set, si) => set.verses.forEach((v, vi) => { v.id = si + ":" + vi; }));
 
     // ---------- 화면 전환 ----------
@@ -912,6 +955,11 @@
       });
 
       renderHint();
+      // 번역본 표시: NIV 범위 밖이면 개역한글로 보여준다고 알려줌 + 저작권 표시
+      $("cardVer").textContent = VERSION_NAMES[version];
+      $("cardVer").style.display = HAS_NIV ? "" : "none";
+      $("lines").lang = isNivShown(v) ? "en" : "ko";
+      $("verNote").textContent = version !== "niv" ? "" : isNivShown(v) ? NIV_NOTICE_SHORT : "NIV 범위 밖이라 개역한글로 보여요";
       $("learnedBtn").classList.toggle("on", learned.has(v.id));
       $("learnedBtn").textContent = learned.has(v.id) ? "✓ 외움" : "외움";
       const where = slotOf(v.id);
@@ -1440,7 +1488,8 @@
     $("openInstall").addEventListener("click", openInstall);
     // ---------- 게임 ----------
     const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
-    const toChosung = w => [...w].map(ch => {
+    const toChosung = w => /[가-힣]/.test(w) ? toCho(w) : w.replace(/[A-Za-z]+/g, x => x[0] + "·".repeat(x.length - 1));
+    const toCho = w => [...w].map(ch => {
       const c = ch.charCodeAt(0);
       return (c >= 0xAC00 && c <= 0xD7A3) ? CHO[Math.floor((c - 0xAC00) / 588)] : ch;
     }).join("");
@@ -1871,7 +1920,7 @@
     let examLevel = "normal";
     try { examLevel = localStorage.getItem(EXAM_LEVEL_KEY) || "normal"; } catch (e) {}
     if (!EXAM_LEVELS.some(l => l.key === examLevel)) examLevel = "normal";
-    const verseLen = v => v.text.replace(/\s/g, "").length;
+    const verseLen = v => vText(v).replace(/\s/g, "").length;
     function examPool(list, n) {   // 이 범위에서 고를 수 있는 구절 번호들
       const idx = list.map((_, i) => i);
       if (examLevel === "normal") return idx;
@@ -2038,7 +2087,7 @@
           '<div class="x-in">' + (exam.marks && exam.marks[i] != null ? '<span class="x-mark ' + (exam.marks[i] ? 'neg">−' + exam.marks[i] : 'zero">0 ✓') + '</span>' : '') + '<span class="n">' + (i + 1) + '.</span><span class="m">[' + q.major + ']</span><span class="r">' + q.v.ref + '</span>' +
           '<div class="a"><i></i><span></span></div></div>';
         d.querySelector(".a i").textContent = q.v.name.replace(/^\d+\.\s*/, "") + " · " + q.minor;
-        d.querySelector(".a span").textContent = q.v.text;
+        d.querySelector(".a span").textContent = vText(q.v);
         body.appendChild(d);
       });
       if (exam.scroll) { body.scrollTop = exam.scroll; exam.scroll = 0; }
@@ -2130,7 +2179,7 @@
         const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
         const norm = w => xWords(w).join("").toLowerCase();
         // 띄어쓰기·문장부호는 무시하고 글자 단위로 비교 (정답 글자마다 몇 번째 단어인지 기억)
-        const ans = q.v.text.split(/\s+/).filter(w => norm(w));
+        const ans = vText(q.v).split(/\s+/).filter(w => norm(w));
         const A = []; ans.forEach((w, wi) => [...norm(w)].forEach((c, k) => A.push({ c, wi, first: k === 0 })));
         const B = [...norm($("xwText").value)];
         const n = A.length, m = B.length, L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
@@ -2349,6 +2398,31 @@
       if (dx < -60) go(1);
       else if (dx > 60) go(-1);
     });
+
+    // 번역본 고르기 UI
+    const NIV_NOTICE = "Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide.";
+    const NIV_NOTICE_SHORT = "NIV® © Biblica, Inc.™ Used by permission.";
+    function updateVersionUI() {
+      $("verRow").style.display = HAS_NIV ? "" : "none";
+      $("verRow").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === version));
+      $("nivNotice").textContent = HAS_NIV && version === "niv" ? NIV_NOTICE + " (NIV 범위: 5확신 · 8구절 · 60구절 · 180구절 · 242구절 I~VI)" : "";
+      $("cardVer").textContent = VERSION_NAMES[version];
+    }
+    $("verRow").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) setVersion(b.dataset.v); });
+    $("cardVer").addEventListener("click", e => { e.stopPropagation(); setVersion(version === "niv" ? "krv" : "niv"); });
+    function firstVersionAsk() {
+      let asked = true;
+      try { asked = !!localStorage.getItem(VERSION_KEY); } catch (e) {}
+      if (!HAS_NIV || asked) return;
+      const m = document.createElement("div");
+      m.className = "ver-modal";
+      m.innerHTML = '<div class="ver-box"><b>어떤 성경으로 외울까요?</b><small>나중에 목록 화면 위쪽이나 카드에서 언제든 바꿀 수 있어요</small>' +
+        '<button data-v="krv">개역한글<small>전체 구절</small></button><button data-v="niv">NIV<small>5확신 ~ 242구절 VI. 증거까지 · 나머지는 개역한글</small></button></div>';
+      m.addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (!b) return; setVersion(b.dataset.v); m.remove(); });
+      document.body.appendChild(m);
+    }
+    updateVersionUI();
+    firstVersionAsk();
 
     // 카카오톡 공유
     function shareMsg(text) {
