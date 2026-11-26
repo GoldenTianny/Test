@@ -811,6 +811,7 @@
           crossorigin="anonymous"></script>
   <script src="data.js"></script>
   <script src="niv.js"></script>
+  <script src="en.js"></script>
   <script>
     // ---------- 구글 애널리틱스 ----------
     // 애널리틱스에서 받은 측정 ID(G-XXXXXXXXXX)를 넣으면 통계가 모이기 시작해요. 비워두면 아무것도 안 보내요.
@@ -855,9 +856,24 @@
       try { localStorage.setItem(VERSION_KEY, k); } catch (e) {}
       track("version", { version: k });
       updateVersionUI();
+      document.querySelectorAll(".verse-list").forEach(l => { if (l._build && l.childElementCount) l._build(); });
       if (deck && $("app").style.display === "flex") { shown = 0; render(); }
       if (exam && $("exam").classList.contains("open") && $("examBody").querySelector(".x-q")) renderExam();
     }
+    // NIV로 보일 때는 소제목·장절·작은 묶음·중제목도 영어로 (en.js)
+    const HAS_EN = typeof TOPIC_EN === "object";
+    const enOn = v => HAS_EN && isNivShown(v);
+    const topicKey = v => v.name.replace(/^\d+\.\s*/, "").replace(/\s/g, "");
+    function refEn(r) {
+      const m = r.match(/^([가-힣]+)(.*)$/); if (!m) return r;
+      const rest = m[2].replace(/(\d+),(\d+)/g, (a, x, y) => +y === +x + 1 ? x + "-" + y : a).replace(/상$/, "a").replace(/하$/, "b");
+      return (BOOK_EN[m[1]] || m[1]) + " " + rest;
+    }
+    const vName = v => { if (!enOn(v) || !TOPIC_EN[topicKey(v)]) return v.name; const n = v.name.match(/^\d+\.\s*/); return (n ? n[0] : "") + TOPIC_EN[topicKey(v)]; };
+    const vTopic = v => vName(v).replace(/^\d+\.\s*/, "");
+    const vRef = v => enOn(v) ? refEn(v.ref) : v.ref;
+    const vSub = v => (v.sub && enOn(v) && SUB_EN[v.sub]) || v.sub;
+    const vMinor = (set, v) => enOn(v) ? (set.minorEn || MINOR_EN[set.minor] || set.minor) : set.minor;
     const words = v => vText(v).split(/\s+/);
     SETS.forEach((set, si) => set.verses.forEach((v, vi) => { v.id = si + ":" + vi; }));
 
@@ -934,15 +950,17 @@
       const v = deck.verses[index];
       const set = v.slotName ? setById(v.id) : null;
       $("major").textContent = set ? set.major : deck.major;
-      $("minor").textContent = set ? set.minor : deck.minor;
-      const en = set ? set.minorEn : deck.minorEn;
+      const setV = set || (deck.setIndex !== undefined ? SETS[deck.setIndex] : null);
+      const english = setV && enOn(v);
+      $("minor").textContent = english ? vMinor(setV, v) : set ? set.minor : deck.minor;
+      const en = english ? "" : set ? set.minorEn : deck.minorEn;
       $("minorEn").textContent = en ? "(" + en + ")" : "";
 
-      $("name").textContent = titleShown ? v.name : "· · ·";
+      $("name").textContent = titleShown ? vName(v) : "· · ·";
       $("name").classList.toggle("hidden-title", !titleShown);
-      $("sub").textContent = v.sub || "";
+      $("sub").textContent = vSub(v) || "";
       $("sub").style.display = (v.sub && titleShown) ? "" : "none";
-      $("ref").textContent = v.ref;
+      $("ref").textContent = vRef(v);
       $("counter").textContent = (index + 1) + " / " + deck.verses.length;
 
       const box = $("lines");
@@ -1107,9 +1125,9 @@
           row.className = "vrow draggable";
           row.dataset.id = id;
           row.innerHTML =
-            '<div class="vrow-inner"><span class="vref">' + v.ref + '</span>' +
+            '<div class="vrow-inner"><span class="vref">' + vRef(v) + '</span>' +
             '<span class="vname"><span class="vpath">' + pathOf(id).join(" › ") + ' › </span>' +
-            v.name.replace(/^\d+\. /, "") + '</span></div>' +
+            vTopic(v) + '</span></div>' +
             '<div class="vrow-actions"></div>';
           const acts = row.querySelector(".vrow-actions");
           const mv = document.createElement("button");
@@ -1578,14 +1596,14 @@
       body.innerHTML =
         '<div class="g-top"><span>' + (game.i + 1) + ' / ' + game.pool.length + '</span>' +
         '<span><b>○ ' + game.ok + '</b> &nbsp; <span class="x">✕ ' + game.no + '</span></span></div>' +
-        '<div class="g-q-head"><span class="t g-w" id="gTitle"></span><span class="r">' + v.ref + '</span></div>' +
+        '<div class="g-q-head"><span class="t g-w" id="gTitle"></span><span class="r">' + vRef(v) + '</span></div>' +
         '<div class="g-q-from">' + set.major + ' › ' + set.minor + '</div>' +
         '<div class="g-cho" id="gCho"></div>' +
         '<div class="g-tip">초성을 보고 소리 내어 외워 보세요. 막히는 단어는 눌러서 확인해요.</div>' +
         '<div class="g-actions"><button id="gReveal">정답 보기</button></div>' +
         '<div class="g-actions" style="margin-top:8px"><button class="no" id="gNo">✕ 막혔어요</button><button class="ok" id="gOk">○ 다 외웠어요</button></div>';
       // 소제목도 초성으로 (누르면 펼치기/접기)
-      const title = v.name.replace(/^\d+\. /, "");
+      const title = vTopic(v);
       const tEl = $("gTitle");
       tEl.textContent = toChosung(title);
       tEl.addEventListener("click", () => {
@@ -1637,7 +1655,7 @@
         game.missed.forEach(v => {
           const r = document.createElement("div");
           r.className = "row";
-          r.innerHTML = '<span>' + v.name.replace(/^\d+\. /, "") + '</span><b>' + v.ref + '</b>';
+          r.innerHTML = '<span>' + vTopic(v) + '</span><b>' + vRef(v) + '</b>';
           r.addEventListener("click", () => { const [si, vi] = v.id.split(":").map(Number); openSet(si, vi); });
           m.appendChild(r);
         });
@@ -1659,7 +1677,7 @@
       body.innerHTML =
         '<div class="g-top"><span>' + (game.i + 1) + ' / ' + game.pool.length + '</span>' +
         '<span><b>○ ' + game.ok + '</b> &nbsp; <span class="x">✕ ' + game.no + '</span></span></div>' +
-        '<div class="g-q-head"><span class="t">' + v.name.replace(/^\d+\. /, "") + '</span><span class="r">' + v.ref + '</span></div>' +
+        '<div class="g-q-head"><span class="t">' + vTopic(v) + '</span><span class="r">' + vRef(v) + '</span></div>' +
         '<div class="g-q-from">' + set.major + ' › ' + set.minor + '</div>' +
         '<div class="b-ans" id="bAns"><span class="b-empty">여기에 블록을 순서대로 놓아요</span></div>' +
         '<div class="g-tip" id="bMsg">블록을 끌어서 위 칸에 놓거나, 눌러서 옮겨요.</div>' +
@@ -1809,7 +1827,7 @@
       body.innerHTML =
         '<div class="g-top"><span>' + (game.i + 1) + ' / ' + game.pool.length + '</span>' +
         '<span><b>○ ' + game.ok + '</b> &nbsp; <span class="x">✕ ' + game.no + '</span></span></div>' +
-        '<div class="g-q-head"><span class="t">' + v.name.replace(/^\d+\. /, "") + '</span><span class="r">' + v.ref + '</span></div>' +
+        '<div class="g-q-head"><span class="t">' + vTopic(v) + '</span><span class="r">' + vRef(v) + '</span></div>' +
         '<div class="g-q-from">' + set.major + ' › ' + set.minor + '</div>' +
         '<div class="t-board" id="tBoard"><span class="b-empty">첫 단어부터 순서대로 눌러요</span></div>' +
         '<div class="t-status"><span id="tProg">0 / ' + ws.length + '</span><span class="t-combo" id="tCombo"></span><span id="tMiss">실수 0</span></div>' +
@@ -2039,7 +2057,14 @@
     function examFromText(text) {
       const all = SETS.flatMap(x => x.verses.map(v => ({ v, major: x.major, minor: x.minor })));
       const qs = [], missing = [];
-      text.replace(/[\u200B-\u200D\uFEFF]/g, "").split(/\n+/).forEach(line => {
+      text = text.replace(/[\u200B-\u200D\uFEFF]/g, "");
+      // 영어 장절(John 16:24, 1 John 5:11-12)도 한글 약어로 바꿔서 찾기
+      if (typeof BOOK_EN === "object") {
+        const pairs = Object.entries(BOOK_EN).filter(([k]) => k !== "애").sort((a, b) => b[1].length - a[1].length);
+        pairs.forEach(([ko, en]) => { text = text.replace(new RegExp("(^|[^A-Za-z0-9])" + en.replace(/ /g, "\\s*") + "s?\\s+(\\d+:\\d+)", "gi"), (a, pre, cv) => pre + ko + cv); });
+        text = text.replace(/(\d+:\d+(?:[-,]\d+)*)[ab](?![A-Za-z])/g, "$1");
+      }
+      text.split(/\n+/).forEach(line => {
         const m = line.match(/([가-힣]{1,4})\s*(\d+)\s*(?::|장)\s*(\d+)\s*절?((?:\s*[-~,]\s*\d+(?:\s*:\s*\d+)?)*)\s*(상|하)?/);
         if (!m) return;
         const key = refKey(m[1] + m[2] + ":" + m[3] + (m[4] || "") + (m[5] || ""));
@@ -2084,9 +2109,9 @@
         d.className = "x-q" + (exam.all || exam.opened.has(i) ? " open" : "");
         d.dataset.i = i;
         d.innerHTML = '<div class="x-acts"><button class="rd">읽기</button><button class="wr">쓰기</button></div>' +
-          '<div class="x-in">' + (exam.marks && exam.marks[i] != null ? '<span class="x-mark ' + (exam.marks[i] ? 'neg">−' + exam.marks[i] : 'zero">0 ✓') + '</span>' : '') + '<span class="n">' + (i + 1) + '.</span><span class="m">[' + q.major + ']</span><span class="r">' + q.v.ref + '</span>' +
+          '<div class="x-in">' + (exam.marks && exam.marks[i] != null ? '<span class="x-mark ' + (exam.marks[i] ? 'neg">−' + exam.marks[i] : 'zero">0 ✓') + '</span>' : '') + '<span class="n">' + (i + 1) + '.</span><span class="m">[' + q.major + ']</span><span class="r">' + vRef(q.v) + '</span>' +
           '<div class="a"><i></i><span></span></div></div>';
-        d.querySelector(".a i").textContent = q.v.name.replace(/^\d+\.\s*/, "") + " · " + q.minor;
+        d.querySelector(".a i").textContent = vTopic(q.v) + " · " + (enOn(q.v) ? (SETS.find(x => x.verses.includes(q.v)) ? vMinor(SETS.find(x => x.verses.includes(q.v)), q.v) : q.minor) : q.minor);
         d.querySelector(".a span").textContent = vText(q.v);
         body.appendChild(d);
       });
@@ -2155,7 +2180,7 @@
     const xWords = t => t.replace(/[.,!?;:"'“”‘’()\[\]·…-]/g, " ").split(/\s+/).filter(Boolean);
     function renderWrite(i) {
       const q = exam.qs[i];
-      const topic = q.v.name.replace(/^\d+\.\s*/, "");
+      const topic = vTopic(q.v);
       $("examShare").style.visibility = "hidden";
       const body = $("examBody");
       body.innerHTML = '<div class="x-bar"><button id="xwBack">← 시험지</button></div>' +
@@ -2164,7 +2189,7 @@
         '<textarea class="x-wbox" id="xwText" placeholder="기억나는 대로 구절을 써 보세요"></textarea>' +
         '<div class="x-bar" style="margin-top:10px"><button class="on" id="xwCheck">채점하기</button><button id="xwClear">지우기</button></div>' +
         '<div id="xwRes"></div>';
-      body.querySelector(".x-wref").textContent = (i + 1) + ". " + q.v.ref;
+      body.querySelector(".x-wref").textContent = (i + 1) + ". " + vRef(q.v);
       // 쓰던 내용은 기억해 둠 (시험지 갔다 와도 그대로)
       if (!exam.drafts) exam.drafts = {};
       const dr = exam.drafts[i] || (exam.drafts[i] = { topic: "", text: "" });
@@ -2274,7 +2299,7 @@
     // 시험지를 글자로 공유 (휴대폰 공유창 → 카카오톡 선택). 정답은 넣지 않아요.
     function examText() {
       const lv = EXAM_LEVELS.find(l => l.key === exam.level);
-      return "📝 암송시험 (" + exam.qs.length + "문제" + (lv && lv.key !== "normal" ? " · " + lv.label : "") + ")\n\n" + exam.qs.map((q, i) => (i + 1) + ". [" + q.major + "] " + q.v.ref).join("\n");
+      return "📝 암송시험 (" + exam.qs.length + "문제" + (lv && lv.key !== "normal" ? " · " + lv.label : "") + ")\n\n" + exam.qs.map((q, i) => (i + 1) + ". [" + q.major + "] " + vRef(q.v)).join("\n");
     }
     function examMsg(t) {
       const m = document.createElement("div"); m.className = "x-msg"; m.textContent = t;
@@ -2330,25 +2355,27 @@
         const vlist = document.createElement("div");
         vlist.className = "verse-list";
         let built = false;
-        btn.addEventListener("click", () => {
-          if (!built) {
-            built = true;
+        // 번역본을 바꾸면 다시 그릴 수 있게 함수로 둠
+        vlist._build = () => {
+            vlist.innerHTML = "";
             let lastSub = null;
             set.verses.forEach((v, vi) => {
               if (v.sub && v.sub !== lastSub) {
                 const h = document.createElement("div");
                 h.className = "verse-sub";
-                h.textContent = v.sub;
+                h.textContent = vSub(v);
                 vlist.appendChild(h);
                 lastSub = v.sub;
               }
               const row = document.createElement("button");
               row.className = "verse-row";
-              row.innerHTML = '<span class="verse-name">' + v.name + '</span><span class="verse-ref">' + v.ref + '</span>';
+              row.innerHTML = '<span class="verse-name">' + vName(v) + '</span><span class="verse-ref">' + vRef(v) + '</span>';
               row.addEventListener("click", () => openSet(i, vi));
               vlist.appendChild(row);
             });
-          }
+        };
+        btn.addEventListener("click", () => {
+          if (!built) { built = true; vlist._build(); }
           vlist.classList.toggle("open");
           btn.classList.toggle("open", vlist.classList.contains("open"));
         });
