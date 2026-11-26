@@ -135,7 +135,89 @@ const TOPIC_EN = {
   "하나님은아무도지옥에보내시지않을것이다": "\"God Won't Send Anyone to Hell\"", "이교도들은어떻게되나": "\"What About Those Who Never Heard?\"",
   "구속받음": "Redeemed", "화목하게됨": "Reconciled", "사함받음": "Forgiven", "율법에서해방됨": "Freed from the Law", "하나님께로남": "Born of God",
   "제사장이됨": "Made Priests", "거룩하게됨": "Sanctified", "완전하게됨": "Made Perfect", "의롭다하심": "Justified", "천국시민이됨": "Citizens of Heaven",
-  "온전하게됨": "Made Complete"
+  "온전하게됨": "Made Complete",
+  // 242 VII. 그리스도의 주재권
+  "창조의주되신그리스도": "Christ the Creator", "만물의주되신그리스도": "Christ, Lord of All Things", "교회의머리되신그리스도": "Christ, Head of the Church",
+  "모든권세위에뛰어나신그리스도": "Christ, Far Above All Authority", "모든사람의주님되신그리스도": "Christ, Lord of All People",
+  "산자와죽은자의주님되심": "Lord of the Living and the Dead", "피값으로우리를사심": "He Bought Us with His Blood", "헌신의결단을할것": "Make a Decision of Commitment",
+  "필요를채워주심": "He Meets Our Needs", "넘치는보상": "Abundant Reward", "약속을주심": "He Gives Promises", "함께해주심": "He Is with Us",
+  "능력을베푸심": "He Gives Strength", "보호해주심": "He Protects Us", "귀히여겨주심": "He Honors Us",
+  "자기자신": "Self", "대인관계": "Relationships", "장래진로": "Future Path", "세상욕심": "Worldly Desires", "정욕": "Lust", "재물": "Possessions",
+  "시간사용": "Use of Time", "부르심": "Calling", "디모데": "Timothy", "믿음의용사들": "Heroes of Faith",
+  // 242 VIII. 세계비전
+  "세계를위한하나님의관심과약속": "God's Concern and Promise for the World", "지상사명": "The Great Commission", "선교에헌신할것": "Commit to Missions",
+  "세계를위해기도할것": "Pray for the World", "전도할것": "Evangelize", "성장을도울것": "Help Others Grow", "영적배가를할것": "Spiritual Multiplication",
+  "단순한삶과전심의삶을살것": "Live a Simple, Wholehearted Life", "약속성취의영광": "The Glory of Fulfilled Promises",
+  // 찬양 60구절
+  "Why-God'scommandment": "Why — God's Commandment", "Why-Worthyofpraise": "Why — Worthy of Praise", "Why-ToknowGod": "Why — To Know God",
+  "Why-TopleaseGod": "Why — To Please God", "Why-ToglorifyGod": "Why — To Glorify God", "Why-ToproclaimGod": "Why — To Proclaim God",
+  "How-inSpiritandTruth": "How — In Spirit and Truth", "How-fromHeart": "How — From the Heart", "How-throughLife": "How — Through Life",
+  "How-inTongue": "How — With the Tongue", "How-withNewsongandwithinstrument": "How — With a New Song and Instruments", "How-withPsalmofPraise": "How — With a Psalm of Praise",
+  "Alpha-Omega": "Alpha-Omega", "Beauty": "Beauty", "BurdenBearer": "Burden Bearer", "Creator": "Creator", "Deliverer": "Deliverer", "Eternal": "Eternal",
+  "Faithfulness": "Faithfulness", "Forgiveness": "Forgiveness", "Father": "Father", "Gracious": "Gracious", "Goodness": "Goodness", "Greatness": "Greatness",
+  "Guide": "Guide", "GloryandHonor": "Glory and Honor", "Healer": "Healer", "Holy": "Holy", "Hope": "Hope", "Incomparable": "Incomparable", "Joy": "Joy",
+  "JustJudge": "Just Judge", "KingandLord": "King and Lord", "LovingKindness": "Loving Kindness", "Light": "Light", "Life": "Life", "Love": "Love",
+  "Merciful": "Merciful", "Majesty": "Majesty", "Near": "Near", "Omniscient": "Omniscient", "Omnipresent": "Omnipresent", "Protector": "Protector",
+  "Provider": "Provider", "Peace": "Peace", "Power": "Power", "Quicktoanswer": "Quick to Answer", "Righteousness": "Righteousness", "Refuge": "Refuge",
+  "Ruler": "Ruler", "Salvation": "Salvation", "Shepherd": "Shepherd", "Sovereign": "Sovereign", "Trainer": "Trainer", "Unchangeable": "Unchangeable",
+  "Victorious": "Victorious", "Wisdom": "Wisdom", "(E)Xalted": "(E)Xalted", "Yahweh": "Yahweh", "Zealous": "Zealous",
+  // 약속 60구절
+  "불변성": "Unchangeable", "믿음의기초": "Foundation of Faith", "하나님의성품": "God's Character", "성령보증": "The Spirit's Guarantee",
+  "그리스도께촛점": "Focused on Christ", "믿음으로주장(I)": "Claiming by Faith (I)", "믿음으로주장(II)": "Claiming by Faith (II)",
+  "기도로주장(I)": "Claiming by Prayer (I)", "기도로주장(II)": "Claiming by Prayer (II)", "순종으로성취(I)": "Fulfilled by Obedience (I)",
+  "순종으로성취(II)": "Fulfilled by Obedience (II)", "구원": "Salvation", "하나님의나라(소망)": "God's Kingdom (Hope)", "하나님의기도응답": "God Answers Prayer",
+  "하나님의보호": "God's Protection", "하나님의공급": "God's Provision", "죄로부터승리": "Victory over Sin", "고난중승리": "Victory in Suffering",
+  "하나님의용서": "God's Forgiveness", "하나님의인도": "God's Guidance", "시간(여가)": "Time (Leisure)", "물질": "Material Things", "거처": "Dwelling",
+  "가족": "Family", "장래": "Future", "자신-마음": "Self — Heart", "자신-건강": "Self — Health", "자신-야망": "Self — Ambition",
+  "자신-과거집착": "Self — Clinging to the Past", "자신-전환의시기": "Self — Times of Transition", "자신-돌이킴": "Self — Turning Back",
+  "그리스도": "Christ", "순종": "Obedience", "기쁨": "Joy", "충성": "Faithfulness", "거룩": "Holiness", "전도": "Evangelism", "확립": "Establishing",
+  "무장": "Equipping", "파송": "Sending", "세계선교": "World Missions", "징모": "Recruiting", "팀웍": "Teamwork", "ONEMANVISION": "One-Man Vision",
+  "재생산": "Reproduction",
+  // 훈련 60구절
+  "하나님의때": "God's Timing", "하나님의상급": "God's Reward", "하나님의뜻": "God's Will", "하나님께합당한삶": "A Life Worthy of God",
+  "하나님의약속": "God's Promise", "평강의하나님": "The God of Peace", "의의평강한열매": "The Peaceful Fruit of Righteousness", "예수님의본": "Jesus' Example",
+  "예수님을닮아감": "Becoming Like Jesus", "시대의요청": "The Call of the Times", "효과적으로쓰임받음": "Being Used Effectively",
+  "한사람의영향력": "The Influence of One Person", "비전성취의열쇠": "The Key to Fulfilling the Vision", "경건의시간": "Devotional Time",
+  "Lordship": "Lordship", "성품계발": "Character Development", "재생산의사역": "Ministry of Reproduction", "일군배가의사역": "Ministry of Multiplying Workers",
+  "섬기는지도자": "Servant Leader", "기쁨과감사": "Joy and Thanksgiving", "성장의열망": "Desire to Grow", "Faithful(충성)": "Faithful",
+  "Available(얽매이지않음)": "Available", "Teachable(가르침을잘받음)": "Teachable", "섬기려는태도(열정과겸손의조화)": "A Servant Attitude (Zeal with Humility)",
+  "하나님의약속에대한믿음과소망(믿음과지혜의조화)": "Faith and Hope in God's Promises (Faith with Wisdom)", "사랑과인내(은혜와진리의조화)": "Love and Patience (Grace with Truth)",
+  "Stewardship(청지기)": "Stewardship", "Servantship(종의도)": "Servantship", "Self-Discipline(자기훈련)": "Self-Discipline",
+  "하나님을의뢰하는믿음": "Faith That Relies on God", "말씀에대한분별력": "Discernment in the Word", "중보기도": "Intercessory Prayer",
+  "삶의본": "Example of Life", "충성심": "Loyalty", "사랑의동기": "Motivated by Love", "깨끗한동기": "Pure Motives", "지혜와분별력": "Wisdom and Discernment",
+  "인내와지속성": "Patience and Perseverance", "부지런함과민감함": "Diligence and Sensitivity", "창의력과탁월함": "Creativity and Excellence",
+  "은사의활용": "Using Gifts", "하나님의은혜에기초를둠": "Grounded in God's Grace", "참필요를분별함": "Discerning Real Needs",
+  "올바른목표를가짐(가르침)": "Having the Right Goal (Teaching)", "LifeTogether": "Life Together", "본을보여줌": "Setting an Example",
+  "점검과부딪침": "Checking and Confronting", "동기를부여함": "Motivating", "목표에집중함/단순성": "Focusing on the Goal / Simplicity",
+  "지속적인평가": "Ongoing Evaluation", "확신을세워줌": "Building Conviction", "재생산의시야": "Vision for Reproduction", "성령을의뢰함": "Relying on the Spirit",
+  // 전도 60구절
+  "하나님의뜻Ⅰ": "God's Will I", "하나님의뜻Ⅱ": "God's Will II", "사람의진정한필요Ⅰ": "People's Real Need I", "사람의진정한필요Ⅱ": "People's Real Need II",
+  "당연한책임Ⅰ": "Our Natural Duty I", "당연한책임Ⅱ": "Our Natural Duty II", "사명": "Mission", "그리스도의대사의직분": "The Office of Christ's Ambassador",
+  "복음의능력": "The Power of the Gospel", "하나님의은혜때문에": "Because of God's Grace", "생활": "Life", "간증": "Testimony", "담대함": "Boldness",
+  "영혼을민망히여김": "Compassion for Souls", "열정": "Passion", "변론을피할것": "Avoid Arguments", "이단을멀리할것": "Keep Away from Heresy",
+  "장소에구애됨없이": "Regardless of Place", "시기에관계없이": "Regardless of Season", "짧은인생": "A Short Life", "만족이없는삶": "A Life Without Satisfaction",
+  "괴로움": "Distress", "무관심한세대": "An Indifferent Generation", "육신의소욕을좇음": "Following the Desires of the Flesh", "심각한죄악상": "Serious Sinfulness",
+  "생명없는삶": "A Life Without Life", "피곤함": "Weariness", "헛된영광을추구함": "Pursuing Empty Glory", "수고와슬픔": "Trouble and Sorrow",
+  "죽음에대한두려움": "Fear of Death", "죄의종": "Slaves to Sin", "창조의목적": "The Purpose of Creation", "죄가들어옴": "Sin Entered",
+  "하나님과의분리": "Separation from God", "죄에대한하나님의심판": "God's Judgment on Sin", "예수님이오신목적": "Why Jesus Came",
+  "예수님이값을치르심": "Jesus Paid the Price", "유일한길": "The Only Way", "믿어야함": "Must Believe", "영접권유": "Invitation to Receive Christ",
+  "영접의결과": "The Result of Receiving Christ", "불신에대한경고": "Warning Against Unbelief", "조상들은어떻게되나": "\"What About Our Ancestors?\"",
+  "성경에오류가많다": "\"The Bible Has Many Errors\"", "진화론": "\"Evolution\"", "종교는다한길을추구한다": "\"All Religions Lead the Same Way\"",
+  "나밖에믿을수없다": "\"I Can Only Trust Myself\"", "나는관심이없다": "\"I'm Not Interested\"", "내가왜죄인인가": "\"Why Am I a Sinner?\"",
+  "원죄를이해할수없다": "\"I Can't Understand Original Sin\"", "죄를짓게만든것이아니냐": "\"Didn't God Make Us Sin?\"",
+  "이단은어떻게분변하나": "\"How Do I Recognize Heresy?\"", "구원은죽어봐야안다": "\"You Only Know About Salvation When You Die\"",
+  "보아야만믿겠다": "\"I'll Believe It When I See It\"",
+  // 인격 60구절
+  "Heart": "Heart", "Action": "Action", "Tongue": "Tongue", "하나님의관심": "God's Concern", "부르심의목적": "The Purpose of Our Calling",
+  "그리스도의형상을본받음": "Conformed to Christ's Image", "성령의열매": "Fruit of the Spirit", "재생산의열매": "Fruit of Reproduction",
+  "영향력있는삶": "An Influential Life", "영적인성숙(그리스도를알아감)": "Spiritual Maturity (Knowing Christ)", "하나님께쓰임받음": "Being Used by God",
+  "사탄에게틈을주지않음": "Giving Satan No Foothold", "영원한가치": "Eternal Value", "새사람을입음": "Putting On the New Self",
+  "그리스도의본을좇음": "Following Christ's Example", "말씀에순종함": "Obeying the Word", "기도의능력": "The Power of Prayer",
+  "주님과의교제": "Fellowship with the Lord", "경책을받아들임": "Accepting Rebuke", "팀웍과훈련": "Teamwork and Training", "자기부인": "Self-Denial",
+  "고난을통한연단": "Refined Through Suffering", "상하고통회하는마음": "A Broken and Contrite Heart", "입장을바꿔생각함": "Putting Yourself in Others' Shoes",
+  "자원함(주도권)": "Willingness (Initiative)", "열심과부지런함": "Zeal and Diligence", "탁월": "Excellence", "절제": "Self-Control",
+  "동일시": "Identification", "용서": "Forgiveness", "희생": "Sacrifice", "온유": "Gentleness", "양선": "Goodness", "긍휼과자비": "Compassion and Mercy",
+  "균형": "Balance", "민감함": "Sensitivity", "자족과유연성": "Contentment and Flexibility", "인내": "Patience"
 };
 
 // 중제목(묶음) 영어 이름 — data.js에 영어 이름이 없는 것만
@@ -143,7 +225,16 @@ const MINOR_EN = {
   "I. 구원의 확신": "I. Assurance of Salvation", "II. QUIET TIME": "II. Quiet Time", "III. 말씀": "III. The Word", "IV. 기도": "IV. Prayer",
   "V. 교제": "V. Fellowship", "VI. 증거": "VI. Witnessing",
   "1. 하나님을 알아감": "1. Knowing God", "2. 사랑 안에서 자라감": "2. Growing in Love", "3. 믿음 안에서 자라감": "3. Growing in Faith",
-  "4. 승리 안에서 행함": "4. Walking in Victory", "5. 그리스도를 증거함": "5. Witnessing for Christ"
+  "4. 승리 안에서 행함": "4. Walking in Victory", "5. 그리스도를 증거함": "5. Witnessing for Christ",
+  "VII. 그리스도의 주재권": "VII. The Lordship of Christ", "VIII. 세계비전": "VIII. World Vision",
+  "I. 찬양의 원리": "I. Principles of Praise", "II. 하나님(A-G)": "II. God (A-G)", "II. 하나님(G-L)": "II. God (G-L)", "II. 하나님(L-R)": "II. God (L-R)", "II. 하나님(R-Z)": "II. God (R-Z)",
+  "A. 하나님의 약속": "A. God's Promises", "B. 기본적인 하나님의 약속들": "B. Basic Promises of God", "C. 제자의 삶에 대한 약속들": "C. Promises for the Disciple's Life",
+  "D. BASIC 과 인격에 대한 약속들": "D. Promises for BASIC and Character", "E. 사역에 관한 약속들": "E. Promises for Ministry",
+  "A. 훈련의 중요성": "A. The Importance of Training", "B. 훈련의 영역": "B. Areas of Training", "C. 훈련하는 자의 태도": "C. The Trainer's Attitude",
+  "D. 훈련에 참예하는 자의 자질": "D. Qualities of Those in Training", "E. 훈련기술": "E. Training Skills",
+  "A. 전도의 중요성": "A. The Importance of Evangelism", "B. 전도의 방법": "B. Methods of Evangelism", "C. 인간의 상태": "C. The Human Condition",
+  "D. 복음의 핵심": "D. The Heart of the Gospel", "E. 반대질문": "E. Objections",
+  "A. WHAT?": "A. WHAT?", "B. WHY?": "B. WHY?", "C. HOW?": "C. HOW?", "D-1. Which Areas?": "D-1. Which Areas?", "D-2. Which Areas?": "D-2. Which Areas?"
 };
 
 // 작은 묶음(소제목 위 제목) 영어 이름
@@ -161,5 +252,7 @@ const SUB_EN = {
   "(1) 사랑으로 말함": "(1) Speaking in Love", "(2) 사랑으로 대함": "(2) Treating Others in Love", "(3) 사랑으로 행함": "(3) Acting in Love",
   "(1) 약속": "(1) Promises", "(2) 말씀": "(2) The Word", "(3) 믿음": "(3) Faith",
   "(1) 승리": "(1) Victory", "(2) 순결": "(2) Purity", "(3) 기도": "(3) Prayer",
-  "(1) 전도": "(1) Evangelism", "(2) 변명": "(2) Excuses", "(3) 신자의 위치": "(3) The Believer's Position"
+  "(1) 전도": "(1) Evangelism", "(2) 변명": "(2) Excuses", "(3) 신자의 위치": "(3) The Believer's Position",
+  "1. 주재권을 인정해야 함": "1. We Must Acknowledge His Lordship", "2. 주재권을 인정할 때의 축복": "2. Blessings of Surrendering to His Lordship",
+  "3. 주재권을 인정할 영역": "3. Areas to Surrender to His Lordship", "4. 주재권을 인정한 삶의 모범": "4. Examples of Lives Surrendered to His Lordship"
 };
