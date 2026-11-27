@@ -21,9 +21,9 @@ const TOPIC_EN = {
   "구원의확신": "Assurance of Salvation", "기도응답의확신": "Assurance of Answered Prayer", "승리의확신": "Assurance of Victory",
   "사죄의확신": "Assurance of Forgiveness", "인도의확신": "Assurance of Guidance",
   // 8구절
-  "그리스도안의생활": "Life in Christ", "하나님의말씀에의한생활": "Life by God's Word", "하나님의성령에의한생활": "Life by God's Spirit",
-  "믿음에의한생활": "Life by Faith", "사랑에의한생활": "Life by Love", "그리스도인의교제하는생활": "Life of Christian Fellowship",
-  "증인으로서의생활": "Life as a Witness", "후히드리는생활": "Life of Generous Giving",
+  "그리스도안의생활": "Living in Christ", "하나님의말씀에의한생활": "Living by the Word of God", "하나님의성령에의한생활": "Living by the Spirit of God",
+  "믿음에의한생활": "Living by Faith", "사랑에의한생활": "Living a Life of Love", "그리스도인의교제하는생활": "Living in Christian Fellowship",
+  "증인으로서의생활": "Living as a Witness", "후히드리는생활": "Living a Life of Generosity",
   // 60구절 (Topical Memory System)
   "중심되신그리스도": "Christ the Center", "그리스도께순종": "Obedience to Christ", "말씀": "God's Word", "기도": "Prayer",
   "교제": "Fellowship", "증거": "Witnessing",
